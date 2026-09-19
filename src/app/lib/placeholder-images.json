@@ -1,0 +1,41 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-pottery",
+      "description": "Exquisite terracotta pottery items",
+      "imageUrl": "https://picsum.photos/seed/101/1200/600",
+      "imageHint": "terracotta pottery"
+    },
+    {
+      "id": "craft-textiles",
+      "description": "Hand-woven traditional textiles",
+      "imageUrl": "https://picsum.photos/seed/102/600/400",
+      "imageHint": "woven textile"
+    },
+    {
+      "id": "craft-jewelry",
+      "description": "Handcrafted silver jewelry",
+      "imageUrl": "https://picsum.photos/seed/103/600/400",
+      "imageHint": "handmade jewelry"
+    },
+    {
+      "id": "craft-woodwork",
+      "description": "Detailed wooden carvings",
+      "imageUrl": "https://picsum.photos/seed/104/600/400",
+      "imageHint": "wood carving"
+    },
+    {
+      "id": "craft-painting",
+      "description": "Traditional hand painting",
+      "imageUrl": "https://picsum.photos/seed/105/600/400",
+      "imageHint": "indian painting"
+    },
+    {
+      "id": "artisan-profile",
+      "description": "Master artisan at work",
+      "imageUrl": "https://picsum.photos/seed/106/400/400",
+      "imageHint": "artisan craft"
+    }
+  ]
+}

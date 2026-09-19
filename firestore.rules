@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * VIRASYA SECURITY RULES - PROTOTYPING MODE
+     * 
+     * Core Philosophy:
+     * This ruleset implements a strict user-ownership model designed for the Virasya marketplace. 
+     * Security focuses on identity verification and resource ownership rather than data shape 
+     * validation to allow for rapid iteration of the AI-driven "Craft Function" flow.
+     * 
+     * Data Structure:
+     * - Top-level collections: /userProfiles (Artisan/Buyer profiles) and /products (Marketplace listings).
+     * - User-specific subcollections: /users/{userId}/browsingHistory and /users/{userId}/recommendations.
+     * 
+     * Key Security Decisions:
+     * 1. Ownership via Path: Private activity (history, recommendations) is secured via the userId in the path.
+     * 2. Ownership via Denormalization: The Product entity includes an 'artisanId' field, which is used 
+     *    to authorize updates/deletes without cross-document lookups.
+     * 3. Visibility Control: The 'status' field ('Draft' vs 'Published') in Products controls 
+     *    public visibility while ensuring artisans can always see their own drafts.
+     * 4. Relational Integrity: On creation, we enforce that the 'artisanId' or 'userId' field in 
+     *    the data matches the authenticated user.
+     */
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    /** Checks if the user is authenticated. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the provided UID matches the authenticated user's UID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Checks if the document exists and the current user is the owner. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for user profiles. Users can manage their own profile. Public profiles are readable by signed-in users.
+     * @path /userProfiles/{userId}
+     * @allow (create) if the authenticated UID matches the document ID.
+     * @deny (update) if the user attempts to modify someone else's profile.
+     * @principle Enforces identity-to-document-ID consistency for root user records.
+     */
+    match /userProfiles/{userId} {
+      allow get, list: if isSignedIn();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for product listings. Supports both private artisan drafts and public marketplace items.
+     * @path /products/{productId}
+     * @allow (get) if the product is 'Published' OR the user is the artisan who created it.
+     * @deny (create) if the 'artisanId' field does not match the authenticated user.
+     * @principle Uses a status-based visibility pattern combined with field-level ownership.
+     */
+    match /products/{productId} {
+      // Logic: Allow read if the product is public OR the current user is the owner (artisan).
+      allow get, list: if resource.data.status == 'Published' || (isSignedIn() && resource.data.artisanId == request.auth.uid);
+      
+      // Logic: Only artisans can create products, and they must set themselves as the artisanId.
+      allow create: if isSignedIn() && request.resource.data.artisanId == request.auth.uid;
+      
+      // Logic: Only the original artisan can update or delete. Ensure artisanId is immutable.
+      allow update: if isExistingOwner(resource.data.artisanId) && request.resource.data.artisanId == resource.data.artisanId;
+      allow delete: if isExistingOwner(resource.data.artisanId);
+    }
+
+    /**
+     * @description Private browsing history. Path-based ownership ensures only the owner can access.
+     * @path /users/{userId}/browsingHistory/{historyId}
+     * @allow (list) if the {userId} wildcard matches the auth.uid.
+     * @deny (get) if trying to access another user's history path.
+     * @principle Restricts access to a user's own data tree using path wildcards.
+     */
+    match /users/{userId}/browsingHistory/{historyId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Private AI-generated recommendations.
+     * @path /users/{userId}/recommendations/{recommendationId}
+     * @allow (create) if the system or user is writing to their own recommendation path.
+     * @deny (write) if the userId in the data does not match the userId in the path.
+     * @principle Enforces path consistency and private access for personalized AI content.
+     */
+    match /users/{userId}/recommendations/{recommendationId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}

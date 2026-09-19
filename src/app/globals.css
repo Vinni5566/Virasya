@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Alegreya:wght@400;500;600;700&family=PT+Sans:wght@400;700&family=Inter:wght@400;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 30 15% 95%;
+    --foreground: 20 15% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 15% 15%;
+    --primary: 19 37% 46%;
+    --primary-foreground: 30 15% 98%;
+    --secondary: 19 20% 90%;
+    --secondary-foreground: 19 37% 30%;
+    --muted: 19 10% 88%;
+    --muted-foreground: 19 15% 45%;
+    --accent: 344 60% 50%;
+    --accent-foreground: 30 15% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 19 20% 85%;
+    --input: 19 20% 85%;
+    --ring: 19 37% 46%;
+    --radius: 1rem;
+    --chart-1: 19 37% 46%;
+    --chart-2: 344 60% 50%;
+    --chart-3: 160 30% 40%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+}
+
+.paper-texture {
+  background-image: url("https://www.transparenttextures.com/patterns/handmade-paper.png");
+}
+
+.hero-gradient {
+  background: linear-gradient(rgba(161, 102, 74, 0.05), rgba(244, 242, 240, 0));
+}
+
+/* Google Translate Overrides */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+.goog-te-gadget-icon,
+.goog-te-menu-value span:nth-child(3),
+.goog-te-menu-frame.skiptranslate,
+.goog-te-gadget-simple,
+.goog-te-balloon-frame,
+#goog-gt-tt,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+.goog-text-highlight {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+#google_translate_element {
+  display: none !important;
+}
+
+/* Hide the attribution */
+.goog-logo-link {
+  display: none !important;
+}
+
+.goog-te-gadget {
+  color: transparent !important;
+}
+
+/* Prevent translation engines from corrupting inline SVGs and icons */
+svg,
+svg *,
+.notranslate,
+[translate="no"] {
+  translate: no !important;
+  -webkit-user-modify: read-only;
+}
