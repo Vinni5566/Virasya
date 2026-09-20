@@ -27,6 +27,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
   const [customQuestion, setCustomQuestion] = useState("");
+  const [lastAskedQuestion, setLastAskedQuestion] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const productRef = useMemoFirebase(() => {
     if (!db || !id) return null;
@@ -43,7 +45,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const { data: artisanProfile } = useDoc(artisanRef);
 
   const handleAskAI = async (question: string) => {
-    if (!product) return;
+    if (!product || !question.trim()) return;
+    const trimmedQuestion = question.trim();
+    setIsDialogOpen(false);
+    setLastAskedQuestion(trimmedQuestion);
     setIsAiLoading(true);
     setAiAnswer(null);
     try {
@@ -53,11 +58,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         materials: product.materials,
         region: product.region,
         story: product.story,
-        question
+        question: trimmedQuestion
       });
       setAiAnswer(response.answer);
+      setCustomQuestion("");
     } catch (error) {
-      setAiAnswer("I'm sorry, I encountered an error while processing your request. Please try again.");
+      setAiAnswer("I'm sorry, I encountered an error while retrieving heritage insights. Please try again.");
     } finally {
       setIsAiLoading(false);
     }
@@ -222,7 +228,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                History of {product.craftType}
              </Button>
              
-             <Dialog>
+             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                <DialogTrigger asChild>
                  <Button className="rounded-full h-12 px-8 shadow-lg gap-2">
                    <MessageSquare className="h-4 w-4" />
@@ -237,17 +243,22 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                  <div className="space-y-4 mt-4">
                    <div className="flex gap-2">
                      <Input 
-                        placeholder="e.g. Is this material eco-friendly?" 
+                        placeholder="e.g. Is this product eco-friendly?" 
                         value={customQuestion} 
                         onChange={(e) => setCustomQuestion(e.target.value)}
-                        className="rounded-full h-12"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAskAI(customQuestion)}
+                        className="rounded-full h-12 px-5"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && customQuestion.trim()) {
+                            e.preventDefault();
+                            handleAskAI(customQuestion);
+                          }
+                        }}
                      />
                      <Button 
                         size="icon" 
                         className="rounded-full h-12 w-12 shrink-0" 
                         onClick={() => handleAskAI(customQuestion)}
-                        disabled={isAiLoading || !customQuestion}
+                        disabled={isAiLoading || !customQuestion.trim()}
                       >
                        <Send className="h-4 w-4" />
                      </Button>
@@ -258,20 +269,27 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           {(isAiLoading || aiAnswer) && (
-            <div className="bg-white rounded-3xl p-8 text-left border border-primary/10 shadow-sm animate-in fade-in slide-in-from-bottom-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <Sparkles className="h-4 w-4 text-primary" />
+            <div className="bg-white rounded-3xl p-8 text-left border border-primary/10 shadow-md animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-primary/10">
+                <div className="flex items-center gap-2">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="font-bold text-primary uppercase text-xs tracking-widest">AI Heritage Insights</span>
                 </div>
-                <span className="font-bold text-primary uppercase text-xs tracking-widest">AI Expert Insights</span>
+                {lastAskedQuestion && (
+                  <span className="text-xs font-medium text-muted-foreground italic truncate max-w-md">
+                    Q: "{lastAskedQuestion}"
+                  </span>
+                )}
               </div>
               {isAiLoading ? (
                 <div className="flex items-center gap-3 py-4">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <p className="text-muted-foreground italic">Gathering heritage knowledge...</p>
+                  <p className="text-muted-foreground italic">Consulting master craft knowledge...</p>
                 </div>
               ) : (
-                <p className="text-lg leading-relaxed font-headline italic text-foreground/80">
+                <p className="text-lg leading-relaxed font-headline italic text-foreground/90">
                   "{aiAnswer}"
                 </p>
               )}
