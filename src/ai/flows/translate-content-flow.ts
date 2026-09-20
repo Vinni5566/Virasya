@@ -804,12 +804,25 @@ Story: {{{story}}}
 export async function translateListing(input: TranslationInput): Promise<TranslationOutput> {
   const langCode = LANGUAGE_CODE_MAP[input.targetLanguage] || 'en';
 
-  // Attempt Genkit AI prompt if GEMINI_API_KEY is configured with a 2.5s maximum timeout
+  if (langCode === 'en') {
+    return {
+      translatedTitle: input.title,
+      translatedDescription: input.description,
+      translatedStory: input.story,
+      translatedMaterials: input.materials || '',
+      translatedStyle: input.style || '',
+      translatedCategory: input.category || '',
+      translatedRegion: input.region || '',
+      translatedDimensions: input.dimensions || '',
+    };
+  }
+
+  // Attempt Genkit AI prompt if GEMINI_API_KEY is configured with a 12s timeout
   if (process.env.GEMINI_API_KEY) {
     try {
       const aiPromise = executePromptWithFailover(translationPrompt, input);
       const timeoutPromise = new Promise<{ output?: null }>((_, reject) =>
-        setTimeout(() => reject(new Error('AI generation timeout - transitioning to fast neural translation')), 2500)
+        setTimeout(() => reject(new Error('AI generation timeout - transitioning to fast neural translation')), 12000)
       );
 
       const output = await Promise.race([aiPromise, timeoutPromise]) as any;
@@ -818,15 +831,15 @@ export async function translateListing(input: TranslationInput): Promise<Transla
           translatedTitle: postProcessTranslation(output.translatedTitle, langCode),
           translatedDescription: postProcessTranslation(output.translatedDescription, langCode),
           translatedStory: postProcessTranslation(output.translatedStory, langCode),
-          translatedMaterials: postProcessTranslation(output.translatedMaterials || '', langCode),
-          translatedStyle: postProcessTranslation(output.translatedStyle || '', langCode),
-          translatedCategory: postProcessTranslation(output.translatedCategory || '', langCode),
-          translatedRegion: postProcessTranslation(output.translatedRegion || '', langCode),
-          translatedDimensions: postProcessTranslation(output.translatedDimensions || '', langCode),
+          translatedMaterials: postProcessTranslation(output.translatedMaterials || input.materials || '', langCode),
+          translatedStyle: postProcessTranslation(output.translatedStyle || input.style || '', langCode),
+          translatedCategory: postProcessTranslation(output.translatedCategory || input.category || '', langCode),
+          translatedRegion: postProcessTranslation(output.translatedRegion || input.region || '', langCode),
+          translatedDimensions: postProcessTranslation(output.translatedDimensions || input.dimensions || '', langCode),
         };
       }
     } catch (err) {
-      console.warn('Genkit prompt fast failover -> switching to neural engine:', err);
+      console.warn('Genkit translation prompt failover -> switching to neural fallback engine:', err);
     }
   }
 

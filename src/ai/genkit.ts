@@ -3,16 +3,13 @@ import { googleAI } from '@genkit-ai/google-genai';
 
 export const ai = genkit({
   plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
-  model: 'googleai/gemini-3.8-flash',
+  model: 'googleai/gemini-2.5-flash',
 });
 
 export const RESILIENT_MODELS = [
   'googleai/gemini-2.5-flash',
   'googleai/gemini-2.0-flash',
   'googleai/gemini-1.5-flash',
-  'googleai/gemini-3.8-flash',
-  'googleai/gemini-3.6-flash',
-  'googleai/gemini-flash-latest',
 ] as const;
 
 /**

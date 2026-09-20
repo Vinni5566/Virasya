@@ -84,23 +84,33 @@ export default function ArtisanDashboard() {
 
       let titleToUse = product.productName;
       let descToUse = product.description;
+      let craftToUse = product.craftType || 'Handcraft';
+      let regionToUse = product.region || 'India';
 
       if (savedLang !== 'English') {
-        if (product.translations?.[savedLang]?.title) {
-          titleToUse = product.translations[savedLang].title;
+        const trans = product.translations?.[savedLang];
+        if (trans?.title) {
+          titleToUse = trans.title;
         } else if (product.productNameRegional) {
           titleToUse = product.productNameRegional;
         }
 
-        if (product.translations?.[savedLang]?.description) {
-          descToUse = product.translations[savedLang].description;
+        if (trans?.description) {
+          descToUse = trans.description;
+        }
+
+        if (trans?.category) {
+          craftToUse = trans.category;
+        }
+        if (trans?.region) {
+          regionToUse = trans.region;
         }
       }
 
       const result = await generateMarketingContent({
         productName: titleToUse,
-        craftType: product.craftType,
-        region: product.region,
+        craftType: craftToUse,
+        region: regionToUse,
         description: descToUse,
         targetLanguage: savedLang,
       });
@@ -243,7 +253,9 @@ export default function ArtisanDashboard() {
                           <DialogContent className="max-w-2xl rounded-[40px] border-none shadow-2xl">
                             <DialogHeader>
                               <DialogTitle className="text-2xl font-headline text-primary">Social Media Generator</DialogTitle>
-                              <DialogDescription>AI-crafted posts for {item.productName}.</DialogDescription>
+                              <DialogDescription>
+                                AI-crafted posts in {savedLang} for {itemTitle}.
+                              </DialogDescription>
                             </DialogHeader>
                             {isMarketingLoading ? (
                               <div className="flex flex-col items-center py-12">

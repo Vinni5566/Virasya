@@ -103,6 +103,72 @@ const LOCALIZED_FALLBACKS: Record<string, {
     waFooter: '🛍️ ভিরাসিয়া (Virasya) প্ল্যাটফর্মে আজই সংগ্রহ করুন।\n📦 দ্রুত ডেলিভারি | 🔒 নিরাপদ পেমেন্ট',
     promo: 'ভারতের ঐতিহ্যবাহী হস্তশিল্পের অংশ হন —',
   },
+  Marathi: {
+    instaPrefix: '✨ सादर करत आहोत',
+    instaSuffix: '— भारतीय वारसा आणि हस्तकलेचा एक अप्रतिम नमुना! आता विरास्यावर उपलब्ध. 🛍️',
+    waTitle: '🎨 सादर करत आहोत:',
+    waBody: 'पारंपारिक कारागिरीतून साकारलेली अस्सल कलाकृती. आमच्या कुशल कारागिरांनी अत्यंत प्रेमाने आणि कौशल्याने बनवलेली.',
+    waBullet1: '✅ १००% अस्सल आणि हस्तनिर्मित',
+    waBullet2: '✅ थेट कारागिराकडून',
+    waBullet3: '✅ योग्य व रास्त दर',
+    waFooter: '🛍️ आजच विरास्या (Virasya) वरून ऑर्डर करा.\n📦 जलद डिलिव्हरी | 🔒 सुरक्षित पेमेंट',
+    promo: 'भारतीय हस्तकलेचा अभिमान बाळगा —',
+  },
+  Gujarati: {
+    instaPrefix: '✨ પ્રસ્તુત છે',
+    instaSuffix: '— વારસો અને હસ્તકલાનો એક અદ્ભુત નમૂનો! હવે વિરાસ્ય પર ઉપલબ્ધ. 🛍️',
+    waTitle: '🎨 પ્રસ્તુત છે:',
+    waBody: 'ભારતીય હસ્તકળા અને કારીગરીની અનોખી કૃતિ. અમારા કુશળ કારીગરો દ્વારા પરંપરાગત રીતે તૈયાર કરાયેલ.',
+    waBullet1: '✅ ૧૦૦% અસલ અને હાથબનાવટ',
+    waBullet2: '✅ સીધા કારીગર પાસેથી',
+    waBullet3: '✅ યોગ્ય અને વ્યાજબી કિંમત',
+    waFooter: '🛍️ આજે જ વિરાસ્ય (Virasya) પર ઓર્ડર કરો.\n📦 ઝડપી ડિલિવરી | 🔒 સુરક્ષિત ચુકવણી',
+    promo: 'ભારતની અનોખી હસ્તકલાનો ભાગ બનો —',
+  },
+  Telugu: {
+    instaPrefix: '✨ పరిచయం చేస్తున్నాము',
+    instaSuffix: '— సంస్కృతి మరియు చేతివృత్తుల అద్భుత సృష్టి! ఇప్పుడు విరాస్యలో అందుబాటులో ఉంది. 🛍️',
+    waTitle: '🎨 పరిచయం:',
+    waBody: 'భారతీయ సాంప్రదాయ కళా నైపుణ్యంతో రూపొందించిన అసలైన కళాఖండం. నిపుణులైన చేతివృత్తి కళాకారుల ద్వారా తయారు చేయబడింది.',
+    waBullet1: '✅ 100% అసలైనది మరియు చేతితో తయారు చేయబడింది',
+    waBullet2: '✅ నేరుగా కళాకారుల నుండి',
+    waBullet3: '✅ న్యాయమైన ధరల హామీ',
+    waFooter: '🛍️ విరాస్య (Virasya) లో ఇప్పుడే ఆర్డర్ చేయండి.\n📦 వేగవంతమైన డెలివరీ | 🔒 సురక్షితమైన చెల్లింపు',
+    promo: 'భారతదేశ కళా వారసత్వాన్ని మీ సొంతం చేసుకోండి —',
+  },
+  Kannada: {
+    instaPrefix: '✨ ಪರಿಚಯಿಸುತ್ತಿದ್ದೇವೆ',
+    instaSuffix: '— ಪರಂಪರೆ ಮತ್ತು ಕರಕುಶಲತೆಯ ವಿಶಿಷ್ಟ ಕಲಾಕೃತಿ! ಈಗ ವಿರಾಸ್ಯಾದಲ್ಲಿ ಲಭ್ಯವಿದೆ. 🛍️',
+    waTitle: '🎨 ಪರಿಚಯ:',
+    waBody: 'ಭಾರತೀಯ ಸಾಂಪ್ರದಾಯಿಕ ಕರಕುಶಲತೆಯ ಅದ್ಭುತ ಸೃಷ್ಟಿ. ನುರಿತ ಕುಶಲಕರ್ಮಿಗಳಿಂದ ಸಾಂಪ್ರದಾಯಿಕ ಶೈಲಿಯಲ್ಲಿ ರಚಿಸಲ್ಪಟ್ಟಿದೆ.',
+    waBullet1: '✅ 100% ಅಪ್ಪಟ ಮತ್ತು ಕೈಯಿಂದ ತಯಾರಿಸಿದ ಕೃತಿ',
+    waBullet2: '✅ ನೇರವಾಗಿ ಕುಶಲಕರ್ಮಿಗಳಿಂದ',
+    waBullet3: '✅ ನ್ಯಾಯಯುತ ಬೆಲೆ',
+    waFooter: '🛍️ ವಿರಾಸ್ಯಾ (Virasya) ದಲ್ಲಿ ಇಂದೇ ಆರ್ಡರ್ ಮಾಡಿ.\n📦 ಸುರಕ್ಷಿತ ಡೆಲಿವರಿ | 🔒 ಸುರಕ್ಷಿತ ಪಾವತಿ',
+    promo: 'ಭಾರತೀಯ ಕರಕುಶಲ ಪರಂಪರೆಯ ಭಾಗವಾಗಿ —',
+  },
+  Malayalam: {
+    instaPrefix: '✨ അവതരിപ്പിക്കുന്നു',
+    instaSuffix: '— പാരമ്പര്യത്തിന്റെയും കരകൗശലത്തിന്റെയും ഒരു അപൂർവ്വ സൃഷ്ടി! ഇപ്പോൾ വിരാസ്യയിൽ ലഭ്യമാണ്. 🛍️',
+    waTitle: '🎨 അവതരണം:',
+    waBody: 'ഇന്ത്യൻ പരമ്പരാഗത കരകൗശലവിദ്യയിൽ തീർത്ത വിശിഷ്ട കലാസൃഷ്ടി. വിദഗ്ധരായ കരകൗശല വിദഗ്ധർ തയ്യാറാക്കിയത്.',
+    waBullet1: '✅ 100% യഥാർത്ഥവും കൈകൊണ്ട് നിർമ്മിച്ചതും',
+    waBullet2: '✅ നേരിട്ട് കരകൗശല വിദഗ്ദ്ധരിൽ നിന്ന്',
+    waBullet3: '✅ ന്യായമായ വില',
+    waFooter: '🛍️ വിരാസ്യ (Virasya) വഴി ഇന്ന് തന്നെ സ്വന്തമാക്കൂ.\n📦 വേഗതയേറിയ ഡെലിവറി | 🔒 സുരക്ഷിത പേയ്‌മെന്റ്',
+    promo: 'ഇന്ത്യൻ പാരമ്പര്യ കലയെ നെഞ്ചിലേറ്റൂ —',
+  },
+  Odia: {
+    instaPrefix: '✨ ପ୍ରସ୍ତୁତ କରୁଛୁ',
+    instaSuffix: '— ଐତିହ୍ୟ ଏବଂ ହସ୍ତଶିଳ୍ପର ଏକ ଅନନ୍ୟ କୃତି! ଏବେ ଭିରାସ୍ୟାରେ ଉପଲବ୍ଧ। 🛍️',
+    waTitle: '🎨 ପ୍ରସ୍ତୁତି:',
+    waBody: 'ଭାରତୀୟ ପାରମ୍ପରିକ କାରିଗରୀର ଏକ ଅନନ୍ୟ ଉଦାହରଣ। ଦକ୍ଷ କାରିଗରମାନଙ୍କ ଦ୍ୱାରା ପ୍ରସ୍ତୁତ।',
+    waBullet1: '✅ ୧୦୦% ପ୍ରାମାଣିକ ଏବଂ ହସ୍ତନିର୍ମିତ',
+    waBullet2: '✅ ସିଧାସଳଖ କାରିଗରଙ୍କଠାରୁ',
+    waBullet3: '✅ ଉଚିତ ମୂଲ୍ୟ',
+    waFooter: '🛍️ ଭିରାସ୍ୟା (Virasya) ରେ ଆଜି ହିଁ ଅର୍ଡର କରନ୍ତୁ।\n📦 ସୁରକ୍ଷିତ ଡେଲିଭରି | 🔒 ସୁରକ୍ଷିତ ପେମେଣ୍ଟ',
+    promo: 'ଭାରତର ସମୃଦ୍ଧ ହସ୍ତକଳା ଐତିହ୍ୟର ଅଂଶ ହୁଅନ୍ତୁ —',
+  },
 };
 
 const marketingGeneratorFlow = ai.defineFlow(
@@ -129,19 +195,34 @@ const marketingGeneratorFlow = ai.defineFlow(
 
     const fallback = LOCALIZED_FALLBACKS[targetLang];
     if (fallback) {
+      const LOCALIZED_HASHTAGS: Record<string, string[]> = {
+        Hindi: ['#विरासया', '#हस्तशिल्प', '#कारीगरी', '#हस्तनिर्मित', '#भारतीयशिल्प', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Punjabi: ['#ਵਿਰਾਸਯਾ', '#ਹੱਥਕਲਾ', '#ਦਸਤਕਾਰੀ', '#ਹੈਂਡਮੇਡ', '#ਭਾਰਤੀਕਾਰੀਗਰ', '#ਪੰਜਾਬੀਕਲਾ', '#Virasya', '#HandmadeInIndia'],
+        Tamil: ['#விராஸ்யா', '#கைவினை', '#பாரம்பரியம்', '#கைவினைஞர்கள்', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Bengali: ['#ভিরাসিয়া', '#হস্তশিল্প', '#ঐতিহ্য', '#বাংলারশিল্প', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Marathi: ['#विरास्या', '#हस्तकला', '#पारंपारिक', '#भारतीयशिल्प', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Gujarati: ['#વિરાસ્ય', '#હસ્તકલા', '#પરંપરાગત', '#કારીગરી', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Telugu: ['#విరాస్య', '#హస్తకళ', '#చేతివృత్తులు', '#సాంప్రదాయం', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Kannada: ['#ವಿರಾಸ್ಯಾ', '#ಕರಕುಶಲ', '#ಸಾಂಪ್ರದಾಯಿಕ', '#ಕುಶಲಕರ್ಮಿಗಳು', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Malayalam: ['#വിരാസ്യ', '#കരകൗശലം', '#പാരമ്പര്യം', '#ഹാൻഡ്‌മെയ്ഡ്', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Odia: ['#ଭିରାସ୍ୟା', '#ହସ୍ତଶିଳ୍ପ', '#ପାରମ୍ପରିକ', '#କାରିଗରୀ', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+      };
+
+      const tags = LOCALIZED_HASHTAGS[targetLang] || [
+        '#Virasya',
+        '#HandmadeInIndia',
+        '#ArtisanCraft',
+        `#${craftSlug}`,
+        `#${regionSlug}`,
+        '#AuthenticCraft',
+        '#IndianArtisans',
+        '#Heritage',
+      ];
+
       return {
         instagram: `${fallback.instaPrefix} *${name}* (${craft}, ${region}) ${fallback.instaSuffix}`,
         whatsapp: `${fallback.waTitle} *${name}*\n\n${fallback.waBody} (${craft}, ${region})\n\n${fallback.waBullet1}\n${fallback.waBullet2}\n${fallback.waBullet3}\n\n${fallback.waFooter}`,
-        hashtags: [
-          '#Virasya',
-          '#HandmadeInIndia',
-          '#ArtisanCraft',
-          `#${craftSlug}`,
-          `#${regionSlug}`,
-          '#AuthenticCraft',
-          '#IndianArtisans',
-          '#Heritage',
-        ],
+        hashtags: tags,
         promoLine: `${fallback.promo} ${name}.`,
       };
     }
