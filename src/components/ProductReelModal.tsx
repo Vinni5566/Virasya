@@ -530,14 +530,14 @@ export function ProductReelModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-[#FDFBF7] text-foreground rounded-[40px] shadow-2xl border border-amber-900/15">
-        <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+      <DialogContent className="max-w-5xl w-[95vw] sm:w-full p-0 overflow-hidden bg-[#FDFBF7] text-foreground rounded-[24px] sm:rounded-[40px] shadow-2xl border border-amber-900/15 max-h-[92vh] overflow-y-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[560px]">
           {/* Left Column: Remotion 9:16 Video Player Preview inside Luxury Phone Frame */}
-          <div className="lg:col-span-5 bg-gradient-to-b from-amber-950/10 via-amber-900/5 to-amber-950/10 flex flex-col items-center justify-center p-6 sm:p-8 border-b lg:border-b-0 lg:border-r border-amber-900/10 relative">
+          <div className="lg:col-span-5 bg-gradient-to-b from-amber-950/10 via-amber-900/5 to-amber-950/10 flex flex-col items-center justify-center p-4 sm:p-8 border-b lg:border-b-0 lg:border-r border-amber-900/10 relative">
             {/* Phone Bezel Frame */}
-            <div className="w-full max-w-[280px] aspect-[9/16] rounded-[38px] overflow-hidden shadow-[0_20px_50px_rgba(40,20,10,0.25)] border-[5px] border-amber-900/30 relative bg-black group ring-1 ring-amber-500/20">
+            <div className="w-full max-w-[220px] sm:max-w-[280px] aspect-[9/16] rounded-[28px] sm:rounded-[38px] overflow-hidden shadow-[0_20px_50px_rgba(40,20,10,0.25)] border-[4px] sm:border-[5px] border-amber-900/30 relative bg-black group ring-1 ring-amber-500/20">
               {/* Speaker notch */}
-              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-zinc-800 rounded-full z-40" />
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-12 sm:w-16 h-1.5 bg-zinc-800 rounded-full z-40" />
 
               {isMounted ? (
                 <div id="virasya-remotion-player" className="w-full h-full">

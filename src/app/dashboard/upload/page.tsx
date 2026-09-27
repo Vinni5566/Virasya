@@ -52,6 +52,45 @@ const TRANSLATION_LANGUAGES = [
   'English', 'Hindi', 'Tamil', 'Bengali', 'Marathi', 'Gujarati', 'Telugu', 'Kannada', 'Malayalam', 'Punjabi'
 ];
 
+const SAMPLE_CRAFT_PRESETS = [
+  {
+    name: 'Jaipur Blue Pottery',
+    icon: '🏺',
+    image: '/crafts/jaipur-blue-pottery.jpg',
+    region: 'Jaipur, Rajasthan',
+    category: 'Pottery',
+    lang: 'hi',
+    voiceText: 'नमस्ते, मैंने जयपुर की पारंपरिक ब्लू पॉटरी तकनीक से क्वार्ट्ज़ स्टोन और प्राकृतिक कोबाल्ट ऑक्साइड का फूलदान बनाया है। यह पूरी तरह से हस्तनिर्मित है।',
+  },
+  {
+    name: 'Bastar Dhokra Art',
+    icon: '🪆',
+    image: '/crafts/bastar-dhokra-art.jpg',
+    region: 'Bastar, Chhattisgarh',
+    category: 'Metalwork',
+    lang: 'hi',
+    voiceText: 'मैंने बस्तर की 4000 साल पुरानी ढोकरा लॉस्ट-वैक्स तकनीक से शुद्ध पीतल और मधुमक्खी के मोम से आदिवासी संगीतकार की मूर्ति बनाई है।',
+  },
+  {
+    name: 'Kanjeevaram Saree',
+    icon: '🥻',
+    image: '/crafts/kanjeevaram-saree.jpg',
+    region: 'Kanchipuram, Tamil Nadu',
+    category: 'Textiles',
+    lang: 'ta',
+    voiceText: 'காஞ்சிபுரம் பாரம்பரிய தறி முறையில் தூய மல்பெரி பட்டு மற்றும் 24 காரட் தங்க ஜரிகை கொண்டு இந்த பட்டு சேலை நெய்யப்பட்டது.',
+  },
+  {
+    name: 'Chikankari Dupatta',
+    icon: '🧣',
+    image: '/crafts/chikankari-dupatta.jpg',
+    region: 'Lucknow, Uttar Pradesh',
+    category: 'Textiles',
+    lang: 'en',
+    voiceText: 'Handcrafted Lucknow Chikankari pure cotton dupatta with delicate shadow-work floral embroidery. Took 18 days of artisan needlecraft.',
+  },
+];
+
 
 type ProcessingStep = {
   id: number;
@@ -881,12 +920,12 @@ function ProductUploadContent() {
           ))}
         </div>
 
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl sm:text-4xl font-headline font-bold text-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-lg sm:text-3xl lg:text-4xl font-headline font-bold text-foreground">
             {step === 1 && <span>1. Multi-Image & Voice Capture</span>}
             {step === 2 && <span>2. AI Studio Image Enhancer</span>}
             {step === 3 && <span>3. Multilingual AI Processing...</span>}
-            {step === 4 && <span>4. Quick Verification (Missing Details)</span>}
+            {step === 4 && <span>4. Quick Verification</span>}
             {step === 5 && <span>{editId ? "Refine Your Listing" : "5. Review & Polish Listing"}</span>}
             {step === 6 && <span>6. Final Marketplace Preview</span>}
           </h1>
@@ -896,7 +935,7 @@ function ProductUploadContent() {
               variant="ghost"
               size="sm"
               onClick={() => setStep(step - 1)}
-              className="text-xs text-muted-foreground hover:text-foreground gap-1 rounded-full"
+              className="text-xs text-muted-foreground hover:text-foreground gap-1 rounded-full shrink-0"
             >
               <ArrowLeft className="h-4 w-4" /> <span>Back</span>
             </Button>
@@ -934,39 +973,31 @@ function ProductUploadContent() {
                     ✦ Or load a sample craft photo (1-Click):
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setImages([
-                          'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&w=1080&q=80',
-                        ])
-                      }
-                      className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground"
-                    >
-                      🏺 Jaipur Blue Pottery
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setImages([
-                          'https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?auto=format&fit=crop&w=1080&q=80',
-                        ])
-                      }
-                      className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground"
-                    >
-                      🪆 Bastar Dhokra Art
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setImages([
-                          'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1080&q=80',
-                        ])
-                      }
-                      className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground"
-                    >
-                      🥻 Kanjeevaram Saree
-                    </button>
+                    {SAMPLE_CRAFT_PRESETS.map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => {
+                          setImages([preset.image]);
+                          setPrimaryImageIndex(0);
+                          setDetails((prev) => ({
+                            ...prev,
+                            region: preset.region,
+                            category: preset.category,
+                          }));
+                          setSpokenLanguage(preset.lang);
+                          setVoiceTranscript(preset.voiceText);
+                          toast({
+                            title: `Loaded ${preset.name}`,
+                            description: `Matching craft photo, ${preset.region} origin, and spoken description loaded.`,
+                          });
+                        }}
+                        className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground flex items-center gap-1"
+                      >
+                        <span>{preset.icon}</span>
+                        <span>{preset.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -1067,6 +1098,23 @@ function ProductUploadContent() {
                   onTranscriptChange={setVoiceTranscript}
                   selectedLanguage={spokenLanguage}
                   onLanguageChange={setSpokenLanguage}
+                  onSelectSamplePreset={(preset) => {
+                    if (preset.image) {
+                      setImages([preset.image]);
+                      setPrimaryImageIndex(0);
+                    }
+                    if (preset.region) {
+                      setDetails((prev) => ({
+                        ...prev,
+                        region: preset.region,
+                        category: preset.category || prev.category,
+                      }));
+                    }
+                    toast({
+                      title: `Selected ${preset.craftName || preset.label}`,
+                      description: `Synchronized matching craft photo (${preset.region}) with voice note.`,
+                    });
+                  }}
                 />
 
                 {/* Region & Location Check */}
@@ -1090,9 +1138,9 @@ function ProductUploadContent() {
           </div>
 
           {/* Action Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-[28px] bg-white border border-border/60 shadow-md">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] bg-white border border-border/60 shadow-md">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Sparkles className="h-4 w-4 text-primary shrink-0" />
               <span>
                 {images.length > 0
                   ? `${images.length} photo(s) ready for studio enhancement & auto-cataloging.`
@@ -1100,7 +1148,7 @@ function ProductUploadContent() {
               </span>
             </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
               <Button
                 type="button"
                 variant="outline"
@@ -1116,7 +1164,7 @@ function ProductUploadContent() {
                   runMultilingualCataloging(primaryImage!);
                 }}
                 disabled={images.length === 0}
-                className="rounded-full h-12 px-6 text-sm font-semibold border-border/80"
+                className="w-full sm:w-auto rounded-full h-11 sm:h-12 px-5 text-xs sm:text-sm font-semibold border-border/80"
               >
                 Skip Studio Enhancer
               </Button>
@@ -1136,9 +1184,10 @@ function ProductUploadContent() {
                   setStep(2); // Go to Studio Enhancer
                 }}
                 disabled={images.length === 0}
-                className="rounded-full h-12 px-8 shadow-lg text-sm font-bold gap-2 flex-1 sm:flex-initial"
+                className="w-full sm:w-auto rounded-full h-11 sm:h-12 px-6 sm:px-8 shadow-lg text-xs sm:text-sm font-bold gap-2"
               >
-                Enhance & Analyze Craft <ArrowRight className="h-4 w-4" />
+                <span>Enhance & Analyze Craft</span>
+                <ArrowRight className="h-4 w-4 shrink-0" />
               </Button>
             </div>
           </div>
@@ -1240,19 +1289,20 @@ function ProductUploadContent() {
               ))}
             </div>
 
-            <div className="pt-4 flex items-center justify-between gap-4">
+            <div className="pt-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 w-full">
               <Button
                 variant="ghost"
                 onClick={() => setStep(5)}
-                className="text-xs text-muted-foreground hover:text-foreground rounded-full"
+                className="w-full sm:w-auto text-xs text-muted-foreground hover:text-foreground rounded-full h-10"
               >
                 Skip For Now
               </Button>
               <Button
                 onClick={() => setStep(5)}
-                className="rounded-full px-8 h-12 shadow-md font-bold gap-2 text-sm"
+                className="w-full sm:w-auto rounded-full px-6 h-11 sm:h-12 shadow-md font-bold gap-2 text-xs sm:text-sm"
               >
-                Confirm & Continue to Listing <ArrowRight className="h-4 w-4" />
+                <span>Confirm & Continue</span>
+                <ArrowRight className="h-4 w-4 shrink-0" />
               </Button>
             </div>
           </Card>
@@ -1305,10 +1355,10 @@ function ProductUploadContent() {
           </div>
 
           <div className="lg:col-span-2 space-y-6">
-            <Card className="border-none shadow-sm rounded-[40px] bg-white p-8">
-              <div className="flex justify-between items-center mb-8">
+            <Card className="border-none shadow-sm rounded-[24px] sm:rounded-[40px] bg-white p-4 sm:p-8">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
                 <div>
-                  <h2 className="text-2xl font-headline font-bold">Listing Details</h2>
+                  <h2 className="text-xl sm:text-2xl font-headline font-bold">Listing Details</h2>
                   {details.titleRegional && (
                     <p className="text-xs text-primary font-serif italic mt-0.5">
                       <span>Regional: </span>
@@ -1316,7 +1366,7 @@ function ProductUploadContent() {
                     </p>
                   )}
                 </div>
-                <div className="notranslate flex flex-wrap gap-2 justify-end max-w-[50%]" translate="no">
+                <div className="notranslate flex overflow-x-auto no-scrollbar gap-1.5 pb-1 sm:pb-0 sm:flex-wrap sm:justify-end sm:max-w-[60%]" translate="no">
                   {TRANSLATION_LANGUAGES.map(l => {
                     const isCurrent = isTranslating && activeTranslatingLang === l;
                     const isSelected = activeStep5Lang === l;
@@ -1326,10 +1376,10 @@ function ProductUploadContent() {
                         variant={isSelected ? "default" : "ghost"}
                         size="sm"
                         translate="no"
-                        className={`notranslate h-7 rounded-full text-[9px] px-2.5 transition-all ${
+                        className={`notranslate h-7 rounded-full text-[10px] px-2.5 shrink-0 transition-all ${
                           isSelected
                             ? 'bg-primary text-primary-foreground font-semibold shadow-sm hover:bg-primary/90'
-                            : 'bg-secondary/30 hover:bg-secondary/60 text-foreground'
+                            : 'bg-secondary/40 hover:bg-secondary/70 text-foreground'
                         }`}
                         onClick={() => handleTranslate(l)}
                         disabled={isTranslating}
@@ -1558,17 +1608,17 @@ function ProductUploadContent() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-12">
+              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 pt-6 sm:pt-12 w-full">
                 <Button
                   variant="outline"
-                  className="rounded-full h-14 border-2 px-6"
+                  className="w-full sm:w-auto rounded-full h-12 sm:h-14 border-2 px-5 text-sm font-semibold"
                   onClick={() => setStep(1)}
                 >
                   <span>Start Over</span>
                 </Button>
                 <Button
                   variant="secondary"
-                  className="rounded-full h-14 px-6 font-semibold"
+                  className="w-full sm:w-auto rounded-full h-12 sm:h-14 px-5 font-semibold text-sm"
                   onClick={() => handleSave('Draft')}
                   disabled={isSaving}
                 >
@@ -1580,12 +1630,12 @@ function ProductUploadContent() {
                   <span>Save Draft</span>
                 </Button>
                 <Button
-                  className="flex-1 rounded-full h-14 shadow-lg text-lg gap-2"
+                  className="w-full sm:flex-1 rounded-full h-12 sm:h-14 shadow-lg text-sm sm:text-base font-bold gap-2"
                   onClick={() => setStep(6)}
                 >
                   <span>Preview Listing</span>
                   <span translate="no" className="notranslate inline-flex items-center ml-1">
-                    <ArrowRight className="h-5 w-5" />
+                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </span>
                 </Button>
               </div>
@@ -1645,13 +1695,13 @@ function ProductUploadContent() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 pt-6">
-                  <Button variant="outline" className="flex-1 rounded-full h-12" onClick={() => setStep(5)}>
+                <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-6 w-full">
+                  <Button variant="outline" className="w-full sm:flex-1 rounded-full h-11 sm:h-12 font-semibold text-sm" onClick={() => setStep(5)}>
                     Back to Edit
                   </Button>
                   <Button
                     variant="secondary"
-                    className="flex-1 rounded-full h-12 font-semibold"
+                    className="w-full sm:flex-1 rounded-full h-11 sm:h-12 font-semibold text-sm"
                     onClick={() => handleSave('Draft')}
                     disabled={isSaving}
                   >
@@ -1659,7 +1709,7 @@ function ProductUploadContent() {
                     <span>Save as Draft</span>
                   </Button>
                   <Button
-                    className="flex-1 rounded-full h-12 shadow-lg"
+                    className="w-full sm:flex-1 rounded-full h-11 sm:h-12 shadow-lg font-bold text-sm"
                     onClick={() => handleSave('Published')}
                     disabled={isSaving}
                   >

@@ -81,28 +81,28 @@ export default function Home() {
       
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative py-20 lg:py-32 overflow-hidden hero-gradient">
+        <section className="relative py-12 sm:py-20 lg:py-32 overflow-hidden hero-gradient">
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center rounded-full border px-4 py-1 text-xs font-semibold mb-6 text-primary border-primary/20 bg-primary/5">
+              <div className="inline-flex items-center rounded-full border px-3.5 py-1 text-xs font-semibold mb-4 sm:mb-6 text-primary border-primary/20 bg-primary/5">
                 Heritage Craft Meets AI
               </div>
-              <h1 className="text-5xl lg:text-7xl font-headline font-bold text-foreground mb-6 leading-tight">
+              <h1 className="text-3xl sm:text-5xl lg:text-7xl font-headline font-bold text-foreground mb-4 sm:mb-6 leading-[1.15] tracking-tight">
                 Empowering Artisans, <br />
                 <span className="text-primary">Preserving Heritage.</span>
               </h1>
-              <p className="text-xl text-muted-foreground mb-10 leading-relaxed font-body">
+              <p className="text-base sm:text-xl text-muted-foreground mb-6 sm:mb-10 leading-relaxed font-body">
                 Virasya is an AI-powered marketplace where centuries-old craftsmanship 
                 finds a digital home. Discover authentic handcrafted art with verified stories.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/marketplace">
-                  <Button size="lg" className="rounded-full px-8 h-14 text-lg">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+                <Link href="/marketplace" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full sm:w-auto rounded-full px-8 h-12 sm:h-14 text-base sm:text-lg font-semibold shadow-lg shadow-primary/20">
                     Explore Marketplace
                   </Button>
                 </Link>
-                <Link href="/dashboard" onClick={handleSellClick}>
-                  <Button size="lg" variant="outline" className="rounded-full px-8 h-14 text-lg border-2">
+                <Link href="/dashboard" onClick={handleSellClick} className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto rounded-full px-8 h-12 sm:h-14 text-base sm:text-lg border-2 font-semibold">
                     Sell Your Craft
                   </Button>
                 </Link>
@@ -112,9 +112,7 @@ export default function Home() {
           
           <div className="hidden lg:block absolute top-0 right-0 w-1/3 h-full">
             <div className="relative w-full h-full">
-               
-            <Image src="/hero1.jpeg" alt="Description" width={600} height={400} />
-        
+              <Image src="/hero1.jpeg" alt="Indian Handicraft" fill className="object-cover object-left" />
             </div>
           </div>
         </section>

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from 'react';
+import { use, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { MapPin, Sparkles, ShieldCheck, Heart, ShoppingBag, Share2, Globe, Loade
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Product } from '@/lib/types';
+import { CURATED_HERITAGE_PRODUCTS } from '@/lib/curated-products';
 import Link from 'next/link';
 import { askProductAI } from '@/ai/flows/product-qa-flow';
 import { ProductReelModal } from '@/components/ProductReelModal';
@@ -45,7 +46,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     return doc(db, 'products', id);
   }, [db, id]);
 
-  const { data: product, isLoading } = useDoc<Product>(productRef);
+  const { data: dbProduct, isLoading } = useDoc<Product>(productRef);
+  const curatedFallback = useMemo(() => CURATED_HERITAGE_PRODUCTS.find(p => p.id === id), [id]);
+  const product = dbProduct || curatedFallback;
 
   const artisanRef = useMemoFirebase(() => {
     if (!db || !product?.artisanId) return null;
@@ -79,7 +82,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !curatedFallback) {
     return (
       <div className="min-h-screen flex flex-col paper-texture">
         <Navbar />
@@ -115,10 +118,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     <div className="min-h-screen flex flex-col paper-texture">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8 lg:py-16 flex-grow">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
-          <div className="space-y-6">
-            <div className="relative aspect-square rounded-[60px] overflow-hidden shadow-2xl bg-white border-8 border-white">
+      <main className="container mx-auto px-4 py-6 sm:py-8 lg:py-16 flex-grow">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-12 lg:mb-24">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="relative aspect-square rounded-[28px] sm:rounded-[48px] lg:rounded-[60px] overflow-hidden shadow-2xl bg-white border-4 sm:border-8 border-white">
               <Image 
                 src={product.images?.[0] || "https://picsum.photos/seed/default/800/800"} 
                 alt={product.productName} 
@@ -128,69 +131,69 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
 
-          <div className="space-y-10">
+          <div className="space-y-6 sm:space-y-10">
             <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Badge className="bg-primary/10 text-primary border-none px-4 py-1.5 rounded-full">{product.craftType}</Badge>
-                <div className="flex items-center gap-1.5 text-muted-foreground text-sm font-medium">
-                  <MapPin className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-2 mb-3 sm:mb-6 flex-wrap">
+                <Badge className="bg-primary/10 text-primary border-none px-3.5 py-1 rounded-full text-xs font-semibold">{product.craftType}</Badge>
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs sm:text-sm font-medium">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
                   {product.region}
                 </div>
               </div>
-              <h1 className="text-5xl lg:text-6xl font-headline font-bold mb-6 leading-tight">{product.productName}</h1>
-              <div className="flex items-center gap-4 mb-8">
-                <p className="text-4xl font-bold text-primary font-sans">₹{product.price}</p>
-                <Badge variant="outline" className="text-xs font-bold uppercase tracking-widest text-accent border-accent/30 bg-accent/5">Verified Heritage</Badge>
+              <h1 className="text-2xl sm:text-4xl lg:text-6xl font-headline font-bold mb-3 sm:mb-6 leading-tight">{product.productName}</h1>
+              <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
+                <p className="text-2xl sm:text-4xl font-bold text-primary font-sans">₹{product.price}</p>
+                <Badge variant="outline" className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-accent border-accent/30 bg-accent/5">Verified Heritage</Badge>
               </div>
-              <p className="text-muted-foreground leading-relaxed text-xl font-body">
+              <p className="text-muted-foreground leading-relaxed text-sm sm:text-xl font-body">
                 {product.description}
               </p>
             </div>
 
-            <div className="space-y-6 pt-8 border-t border-primary/10">
+            <div className="space-y-4 sm:space-y-6 pt-6 sm:pt-8 border-t border-primary/10">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 rounded-full relative overflow-hidden border-2 border-primary/20 bg-secondary">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full relative overflow-hidden border-2 border-primary/20 bg-secondary shrink-0">
                     <Image src={artisanPhoto} alt={artisanName} fill className="object-cover" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Master Artisan</p>
-                    <p className="text-xl font-headline font-bold text-primary">{artisanName}</p>
+                    <p className="text-[9px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Master Artisan</p>
+                    <p className="text-base sm:text-xl font-headline font-bold text-primary">{artisanName}</p>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 bg-secondary/30 p-4 rounded-2xl">
-                <p className="font-bold text-sm flex items-center gap-3">
-                  <span className="text-muted-foreground uppercase text-xs tracking-wider">Materials:</span> 
+              <div className="flex flex-col gap-1.5 bg-secondary/30 p-3.5 sm:p-4 rounded-2xl">
+                <p className="font-bold text-xs sm:text-sm flex items-center gap-2">
+                  <span className="text-muted-foreground uppercase text-[10px] sm:text-xs tracking-wider">Materials:</span> 
                   {product.materials}
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4 pt-10">
-              <Button size="lg" className="flex-1 rounded-full h-16 gap-3 text-xl shadow-xl hover:shadow-2xl transition-all">
-                <ShoppingBag className="h-6 w-6" /> Buy Heritage
+            <div className="flex gap-2.5 sm:gap-4 pt-4 sm:pt-10">
+              <Button size="lg" className="flex-1 rounded-full h-12 sm:h-16 gap-2 sm:gap-3 text-base sm:text-xl shadow-xl font-bold">
+                <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6" /> Buy Heritage
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full h-16 w-16 p-0 border-2 border-primary/10 hover:border-primary/40">
-                <Heart className="h-6 w-6" />
+              <Button size="lg" variant="outline" className="rounded-full h-12 w-12 sm:h-16 sm:w-16 p-0 border-2 border-primary/10 shrink-0">
+                <Heart className="h-5 w-5 sm:h-6 sm:w-6" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
                 onClick={() => setIsReelModalOpen(true)}
                 title="Create & Share AI Reel"
-                className="rounded-full h-16 px-6 border-2 border-primary/20 bg-amber-500/10 hover:bg-amber-500/20 text-primary hover:border-primary/40 gap-2.5 font-bold shadow-sm hover:shadow-md transition-all"
+                className="rounded-full h-12 sm:h-16 px-4 sm:px-6 border-2 border-primary/20 bg-amber-500/10 hover:bg-amber-500/20 text-primary gap-2 font-bold shrink-0"
               >
-                <Film className="h-5 w-5 text-amber-600 animate-pulse" />
-                <span className="hidden sm:inline">Share Reel</span>
-                <Share2 className="h-5 w-5" />
+                <Film className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 animate-pulse" />
+                <span className="hidden sm:inline">AI Reel</span>
+                <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           </div>
         </div>
 
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-24">
-          <div className="bg-white rounded-[50px] p-10 lg:p-14 shadow-xl border-none h-full">
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 mb-12 lg:mb-24">
+          <div className="bg-white rounded-[28px] sm:rounded-[50px] p-6 sm:p-10 lg:p-14 shadow-xl border-none h-full">
             <div className="flex items-center gap-3 mb-8">
               <div className="bg-primary/10 p-3 rounded-2xl">
                 <Globe className="h-6 w-6 text-primary" />

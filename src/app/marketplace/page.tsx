@@ -75,12 +75,29 @@ export default function MarketplacePage() {
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 flex-grow">
-        <header className="mb-12 text-center md:text-left">
-          <h1 className="text-5xl font-headline font-bold mb-4">Discover Heritage</h1>
-          <p className="text-xl text-muted-foreground">Authentic handcrafted art curated for the modern soul.</p>
+        <header className="mb-6 sm:mb-12 text-center md:text-left">
+          <h1 className="text-3xl sm:text-5xl font-headline font-bold mb-2 sm:mb-4">Discover Heritage</h1>
+          <p className="text-base sm:text-xl text-muted-foreground">Authentic handcrafted art curated for the modern soul.</p>
         </header>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        {/* Mobile Horizontal Category Pills (Sticky & Scrollable) */}
+        <div className="lg:hidden mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar flex items-center gap-2 pb-1">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-sm ${
+                selectedCategory === cat
+                  ? 'bg-primary text-white ring-2 ring-primary/30'
+                  : 'bg-white text-muted-foreground hover:text-foreground border border-border/60'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Filters Sidebar - Desktop */}
           <aside className="hidden lg:block w-64 space-y-10">
             <div>

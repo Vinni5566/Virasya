@@ -26,36 +26,63 @@ export const INDIAN_LANGUAGES: RegionalLanguage[] = [
   { code: 'en', bcp47: 'en-IN', name: 'English', nativeName: 'Indian English' },
 ];
 
-interface ArtisanVoiceInputProps {
-  transcript: string;
-  onTranscriptChange: (text: string) => void;
-  selectedLanguage: string;
-  onLanguageChange: (langCode: string) => void;
-  disabled?: boolean;
+export interface SampleVoicePreset {
+  label: string;
+  lang: string;
+  craftName: string;
+  region: string;
+  category: string;
+  image: string;
+  text: string;
 }
 
-const SAMPLE_VOICE_NOTES = [
+export const SAMPLE_VOICE_NOTES: SampleVoicePreset[] = [
   {
     label: 'Jaipur Blue Pottery (Hindi)',
     lang: 'hi',
+    craftName: 'Jaipur Blue Pottery',
+    region: 'Jaipur, Rajasthan',
+    category: 'Pottery',
+    image: '/crafts/jaipur-blue-pottery.jpg',
     text: 'नमस्ते, मैंने जयपुर की पारंपरिक ब्लू पॉटरी तकनीक से क्वार्ट्ज़ स्टोन और प्राकृतिक कोबाल्ट ऑक्साइड का फूलदान बनाया है। यह पूरी तरह से हस्तनिर्मित है।',
   },
   {
     label: 'Dhokra Metal Craft (Hindi)',
     lang: 'hi',
+    craftName: 'Bastar Dhokra Art',
+    region: 'Bastar, Chhattisgarh',
+    category: 'Metalwork',
+    image: '/crafts/bastar-dhokra-art.jpg',
     text: 'मैंने बस्तर की 4000 साल पुरानी ढोकरा लॉस्ट-वैक्स तकनीक से शुद्ध पीतल और मधुमक्खी के मोम से आदिवासी संगीतकार की मूर्ति बनाई है।',
   },
   {
     label: 'Kanjeevaram Saree (Tamil)',
     lang: 'ta',
+    craftName: 'Kanjeevaram Saree',
+    region: 'Kanchipuram, Tamil Nadu',
+    category: 'Textiles',
+    image: '/crafts/kanjeevaram-saree.jpg',
     text: 'காஞ்சிபுரம் பாரம்பரிய தறி முறையில் தூய மல்பெரி பட்டு மற்றும் 24 காரட் தங்க ஜரிகை கொண்டு இந்த பட்டு சேலை நெய்யப்பட்டது.',
   },
   {
     label: 'Chikankari Dupatta (English)',
     lang: 'en',
+    craftName: 'Chikankari Dupatta',
+    region: 'Lucknow, Uttar Pradesh',
+    category: 'Textiles',
+    image: '/crafts/chikankari-dupatta.jpg',
     text: 'Handcrafted Lucknow Chikankari pure cotton dupatta with delicate shadow-work floral embroidery. Took 18 days of artisan needlecraft.',
   },
 ];
+
+interface ArtisanVoiceInputProps {
+  transcript: string;
+  onTranscriptChange: (text: string) => void;
+  selectedLanguage: string;
+  onLanguageChange: (langCode: string) => void;
+  onSelectSamplePreset?: (preset: SampleVoicePreset) => void;
+  disabled?: boolean;
+}
 
 export function ArtisanVoiceInput({
   transcript,
@@ -419,6 +446,7 @@ export function ArtisanVoiceInput({
                 transcriptRef.current = preset.text;
                 baseTranscriptRef.current = preset.text;
                 onTranscriptChange(preset.text);
+                onSelectSamplePreset?.(preset);
                 setMicError(null);
               }}
               className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground text-left"
