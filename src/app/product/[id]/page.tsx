@@ -5,12 +5,13 @@ import Image from 'next/image';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Sparkles, ShieldCheck, Heart, ShoppingBag, Share2, Globe, Loader2, MessageSquare, Send } from 'lucide-react';
+import { MapPin, Sparkles, ShieldCheck, Heart, ShoppingBag, Share2, Globe, Loader2, MessageSquare, Send, Film } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Product } from '@/lib/types';
 import Link from 'next/link';
 import { askProductAI } from '@/ai/flows/product-qa-flow';
+import { ProductReelModal } from '@/components/ProductReelModal';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [customQuestion, setCustomQuestion] = useState("");
   const [lastAskedQuestion, setLastAskedQuestion] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isReelModalOpen, setIsReelModalOpen] = useState(false);
 
   const productRef = useMemoFirebase(() => {
     if (!db || !id) return null;
@@ -164,8 +166,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <Button size="lg" variant="outline" className="rounded-full h-16 w-16 p-0 border-2 border-primary/10 hover:border-primary/40">
                 <Heart className="h-6 w-6" />
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full h-16 w-16 p-0 border-2 border-primary/10 hover:border-primary/40">
-                <Share2 className="h-6 w-6" />
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={() => setIsReelModalOpen(true)}
+                title="Create & Share AI Reel"
+                className="rounded-full h-16 px-6 border-2 border-primary/20 bg-amber-500/10 hover:bg-amber-500/20 text-primary hover:border-primary/40 gap-2.5 font-bold shadow-sm hover:shadow-md transition-all"
+              >
+                <Film className="h-5 w-5 text-amber-600 animate-pulse" />
+                <span className="hidden sm:inline">Share Reel</span>
+                <Share2 className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -296,6 +306,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             </div>
           )}
         </section>
+
+        {product && (
+          <ProductReelModal
+            product={product}
+            artisanName={artisanName}
+            artisanPhoto={artisanPhoto}
+            isOpen={isReelModalOpen}
+            onClose={() => setIsReelModalOpen(false)}
+          />
+        )}
       </main>
 
       <footer className="bg-white border-t py-16">

@@ -1,8 +1,12 @@
+import appletConfig from '@/../firebase-applet-config.json';
+
 export const firebaseConfig = {
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "studio-761108015-b913b",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1043425275329:web:24a1089a194ec7af271340",
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBvUh6Z064SsoLuFUQa3Mg9MXMoXKg4llc",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "studio-761108015-b913b.firebaseapp.com",
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1043425275329"
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || appletConfig.projectId || "virasya-marketplace",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || appletConfig.appId || "1:761158011637:web:3b0ce3769bd7b33dc2d3bc",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || appletConfig.apiKey || "AIzaSyDyShIPE9ZMAnhav2kZHDL3t7AkmEBnu4w",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || appletConfig.authDomain || "virasya-marketplace.firebaseapp.com",
+  firestoreDatabaseId: (appletConfig as any).firestoreDatabaseId || "(default)",
+  storageBucket: (appletConfig as any).storageBucket || "virasya-marketplace.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || appletConfig.messagingSenderId || "761158011637",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || appletConfig.measurementId || "G-EMFKVE1RQW",
 };

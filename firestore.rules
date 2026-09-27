@@ -51,10 +51,10 @@ service cloud.firestore {
      * @principle Enforces identity-to-document-ID consistency for root user records.
      */
     match /userProfiles/{userId} {
-      allow get, list: if isSignedIn();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow get: if true;
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update, delete: if isSignedIn() && request.auth.uid == userId;
     }
 
     /**

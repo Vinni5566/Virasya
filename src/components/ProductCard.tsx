@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MapPin, ArrowRight, User } from 'lucide-react';
+import { MapPin, ArrowRight, User, Film } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Product } from '@/lib/types';
@@ -39,6 +39,10 @@ export function ProductCard({ product }: ProductCardProps) {
             <Badge className="bg-white/95 text-primary hover:bg-white/100 backdrop-blur-md border-none shadow-sm px-4 py-1.5 rounded-full font-bold tracking-tight">
               {product.craftType}
             </Badge>
+          </div>
+          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/60 backdrop-blur-md text-amber-300 text-[10px] font-bold px-3 py-1 rounded-full border border-amber-400/20 shadow-md opacity-90 group-hover:opacity-100 transition-opacity">
+            <Film className="h-3 w-3 animate-pulse" />
+            <span>AI Reel</span>
           </div>
           <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-between items-end">
              <span className="text-white text-xs font-bold uppercase tracking-widest">{product.craftStyle || 'Handcrafted'}</span>

@@ -57,6 +57,8 @@ function AuthContent() {
   // Helper to map Firebase Auth error codes to user-friendly messages
   const getErrorMessage = (error: any): string => {
     switch (error?.code) {
+      case 'auth/operation-not-allowed':
+        return 'Email/Password sign-in is not yet enabled in the Firebase Console. Please enable "Email/Password" in Firebase Authentication > Sign-in method.';
       case 'auth/invalid-credential':
       case 'auth/wrong-password':
         return 'Incorrect email or password. Please verify your credentials or reset your password.';

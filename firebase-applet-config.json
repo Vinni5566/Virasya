@@ -1,0 +1,12 @@
+{
+  "projectId": "virasya-marketplace",
+  "appId": "1:761158011637:web:3b0ce3769bd7b33dc2d3bc",
+  "apiKey": "AIzaSyDyShIPE9ZMAnhav2kZHDL3t7AkmEBnu4w",
+  "authDomain": "virasya-marketplace.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "virasya-marketplace.firebasestorage.app",
+  "messagingSenderId": "761158011637",
+  "measurementId": "G-EMFKVE1RQW",
+  "oAuthClientId": "",
+  "recaptchaSiteKey": ""
+}

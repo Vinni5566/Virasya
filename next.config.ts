@@ -3,6 +3,7 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
+  transpilePackages: ['@remotion/player', 'remotion', '@remotion/media-utils'],
   typescript: {
     ignoreBuildErrors: true,
   },

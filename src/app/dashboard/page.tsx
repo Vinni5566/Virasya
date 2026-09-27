@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Plus, Package, Trash2, Share2, Loader2, 
   TrendingUp, Eye, Globe, PackageCheck,
-  BookOpen, Sparkles, Camera, Pencil, Megaphone
+  BookOpen, Sparkles, Camera, Pencil, Megaphone, Film
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,8 @@ import {
 import Image from 'next/image';
 import { useState } from 'react';
 import { generateMarketingContent } from '@/ai/flows/artisan-ai-marketing-generator';
+import { ProductReelModal } from '@/components/ProductReelModal';
+import { reelAudioEngine } from '@/components/reel/audioEngine';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, deleteDoc, doc } from 'firebase/firestore';
@@ -33,6 +35,7 @@ export default function ArtisanDashboard() {
   const [isMarketingLoading, setIsMarketingLoading] = useState(false);
   const [marketingResult, setMarketingResult] = useState<any>(null);
   const [marketingProduct, setMarketingProduct] = useState<any>(null);
+  const [selectedReelProduct, setSelectedReelProduct] = useState<any>(null);
 
   const profileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -204,7 +207,7 @@ export default function ArtisanDashboard() {
               <Badge variant="outline" className="border-primary/20 rounded-full">{listings?.length || 0} Products</Badge>
             </div>
             
-            <div className="bg-white rounded-[32px] shadow-sm overflow-hidden min-h-[200px]">
+            <div className="bg-white rounded-[24px] shadow-sm overflow-hidden">
               {isListingsLoading ? (
                 <div className="flex justify-center items-center py-20">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -238,15 +241,27 @@ export default function ArtisanDashboard() {
                             </div>
                           </div>
                         </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1.5 items-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                          title="Generate & Share AI Heritage Reel"
+                          onClick={() => {
+                            reelAudioEngine.unlock();
+                            setSelectedReelProduct(item);
+                          }}
+                        >
+                          <Film className="h-4 w-4" />
+                        </Button>
                         <Link href={`/dashboard/upload?edit=${item.id}`}>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5" title="Edit Listing">
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => handleMarketingGen(item)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5" title="Social Media Generator" onClick={() => handleMarketingGen(item)}>
                               <Share2 className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
@@ -257,6 +272,34 @@ export default function ArtisanDashboard() {
                                 AI-crafted posts in {savedLang} for {itemTitle}.
                               </DialogDescription>
                             </DialogHeader>
+
+                            {/* 9:16 Video Reel Card */}
+                            <div className="bg-gradient-to-r from-amber-500/15 via-primary/10 to-amber-500/15 p-4 sm:p-5 rounded-3xl border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm my-1">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                                  <Film className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-bold text-sm font-headline text-foreground">AI 9:16 Heritage Video Reel</h4>
+                                    <Badge className="bg-amber-600 text-white text-[9px] px-2 py-0.2 rounded-full font-bold">New</Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    Cinematic multi-angle video with heritage storytelling & fair-trade pricing.
+                                  </p>
+                                </div>
+                              </div>
+                              <Button 
+                                className="w-full sm:w-auto rounded-full bg-gradient-to-r from-amber-600 to-primary hover:from-amber-700 hover:to-primary/90 text-white font-bold text-xs h-9 px-4 gap-2 shadow-md shrink-0"
+                                onClick={() => {
+                                  setSelectedReelProduct(item);
+                                }}
+                              >
+                                <Film className="h-3.5 w-3.5" />
+                                Watch Video Reel
+                              </Button>
+                            </div>
+
                             {isMarketingLoading ? (
                               <div className="flex flex-col items-center py-12">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -265,7 +308,20 @@ export default function ArtisanDashboard() {
                             ) : marketingResult && (
                               <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
                                 <div className="bg-secondary/20 p-6 rounded-3xl border border-primary/10">
-                                  <h4 className="font-bold mb-3 text-primary flex items-center gap-2 uppercase tracking-widest text-xs">Instagram</h4>
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-bold text-primary flex items-center gap-2 uppercase tracking-widest text-xs">Instagram</h4>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2.5 text-xs text-primary hover:bg-primary/10 rounded-lg gap-1.5"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(`${marketingResult.instagram}\n\n${marketingResult.hashtags.join(' ')}`);
+                                        toast({ title: "Instagram post copied!" });
+                                      }}
+                                    >
+                                      Copy Post
+                                    </Button>
+                                  </div>
                                   <p className="text-sm italic mb-4 leading-relaxed">{marketingResult.instagram}</p>
                                   <div className="flex flex-wrap gap-2">
                                     {marketingResult.hashtags.map((tag: string) => (
@@ -289,7 +345,7 @@ export default function ArtisanDashboard() {
                             )}
                           </DialogContent>
                         </Dialog>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/5" onClick={() => handleDelete(item.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/5" title="Delete Listing" onClick={() => handleDelete(item.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -415,6 +471,16 @@ export default function ArtisanDashboard() {
           </div>
         </div>
       </main>
+
+      {selectedReelProduct && (
+        <ProductReelModal
+          product={selectedReelProduct}
+          artisanName={profile?.name || user?.displayName || selectedReelProduct?.artisanName}
+          artisanPhoto={profile?.profilePhotoUrl || user?.photoURL}
+          isOpen={!!selectedReelProduct}
+          onClose={() => setSelectedReelProduct(null)}
+        />
+      )}
     </div>
   );
 }
