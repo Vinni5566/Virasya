@@ -928,6 +928,48 @@ function ProductUploadContent() {
                   </Badge>
                 </div>
 
+                {/* 1-Click Sample Craft Photos for Quick Testing */}
+                <div className="pt-2 border-t border-border/40">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                    ✦ Or load a sample craft photo (1-Click):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImages([
+                          'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&w=1080&q=80',
+                        ])
+                      }
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground"
+                    >
+                      🏺 Jaipur Blue Pottery
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImages([
+                          'https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?auto=format&fit=crop&w=1080&q=80',
+                        ])
+                      }
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground"
+                    >
+                      🪆 Bastar Dhokra Art
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImages([
+                          'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1080&q=80',
+                        ])
+                      }
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground"
+                    >
+                      🥻 Kanjeevaram Saree
+                    </button>
+                  </div>
+                </div>
+
                 {/* Primary Preview */}
                 {images.length > 0 ? (
                   <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-secondary/30 border border-border/60">

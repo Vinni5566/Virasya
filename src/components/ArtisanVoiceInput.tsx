@@ -34,6 +34,29 @@ interface ArtisanVoiceInputProps {
   disabled?: boolean;
 }
 
+const SAMPLE_VOICE_NOTES = [
+  {
+    label: 'Jaipur Blue Pottery (Hindi)',
+    lang: 'hi',
+    text: 'नमस्ते, मैंने जयपुर की पारंपरिक ब्लू पॉटरी तकनीक से क्वार्ट्ज़ स्टोन और प्राकृतिक कोबाल्ट ऑक्साइड का फूलदान बनाया है। यह पूरी तरह से हस्तनिर्मित है।',
+  },
+  {
+    label: 'Dhokra Metal Craft (Hindi)',
+    lang: 'hi',
+    text: 'मैंने बस्तर की 4000 साल पुरानी ढोकरा लॉस्ट-वैक्स तकनीक से शुद्ध पीतल और मधुमक्खी के मोम से आदिवासी संगीतकार की मूर्ति बनाई है।',
+  },
+  {
+    label: 'Kanjeevaram Saree (Tamil)',
+    lang: 'ta',
+    text: 'காஞ்சிபுரம் பாரம்பரிய தறி முறையில் தூய மல்பெரி பட்டு மற்றும் 24 காரட் தங்க ஜரிகை கொண்டு இந்த பட்டு சேலை நெய்யப்பட்டது.',
+  },
+  {
+    label: 'Chikankari Dupatta (English)',
+    lang: 'en',
+    text: 'Handcrafted Lucknow Chikankari pure cotton dupatta with delicate shadow-work floral embroidery. Took 18 days of artisan needlecraft.',
+  },
+];
+
 export function ArtisanVoiceInput({
   transcript,
   onTranscriptChange,
@@ -44,6 +67,7 @@ export function ArtisanVoiceInput({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [micError, setMicError] = useState<string | null>(null);
   const [interimText, setInterimText] = useState('');
   
   const recognitionRef = useRef<any>(null);
@@ -150,6 +174,7 @@ export function ArtisanVoiceInput({
         }
         console.warn('Speech recognition notice:', event.error);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setMicError('Microphone permission blocked or unavailable. You can type or use a sample preset below.');
           shouldBeRecordingRef.current = false;
           stopRecording();
         }
@@ -310,8 +335,25 @@ export function ArtisanVoiceInput({
         </div>
       </div>
 
+      {/* Mic Error Notice */}
+      {micError && (
+        <div className="flex items-center justify-between text-xs text-amber-800 bg-amber-50/90 p-2.5 rounded-xl border border-amber-200">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>{micError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMicError(null)}
+            className="text-[10px] font-bold text-amber-800 hover:underline px-1.5"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Recording Area & Microphone CTA */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {speechSupported ? (
           <Button
             type="button"
@@ -338,7 +380,7 @@ export function ArtisanVoiceInput({
         ) : (
           <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
             <AlertCircle className="h-4 w-4" />
-            <span>Voice mic is not supported in this browser. You can type notes below!</span>
+            <span>Voice mic is not supported in this browser. You can type notes or use presets below!</span>
           </div>
         )}
 
@@ -359,6 +401,32 @@ export function ArtisanVoiceInput({
             <RefreshCw className="h-3.5 w-3.5 mr-1" /> Clear
           </Button>
         )}
+      </div>
+
+      {/* 1-Click Quick Sample Voice Presets */}
+      <div className="space-y-1.5 pt-1">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          ✦ Quick-Fill Sample Voice Notes (1-Click):
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {SAMPLE_VOICE_NOTES.map((preset, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                onLanguageChange(preset.lang);
+                langRef.current = preset.lang;
+                transcriptRef.current = preset.text;
+                baseTranscriptRef.current = preset.text;
+                onTranscriptChange(preset.text);
+                setMicError(null);
+              }}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-secondary/50 hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-border/60 transition-colors font-medium text-foreground text-left"
+            >
+              🎙️ {preset.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Interim Speech Preview */}
