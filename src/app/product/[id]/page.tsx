@@ -22,8 +22,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 
-export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  let id = '';
+  if (params) {
+    if (typeof (params as any).then === 'function') {
+      const resolved = use(params as Promise<{ id: string }>);
+      id = resolved?.id || '';
+    } else {
+      id = (params as { id: string })?.id || '';
+    }
+  }
   const db = useFirestore();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);

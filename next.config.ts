@@ -1,7 +1,14 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
+  serverExternalPackages: [
+    '@google/genai',
+    'genkit',
+    '@genkit-ai/google-genai',
+    '@genkit-ai/core',
+    '@opentelemetry/sdk-node',
+  ],
   transpilePackages: ['@remotion/player', 'remotion', '@remotion/media-utils'],
   typescript: {
     ignoreBuildErrors: true,
