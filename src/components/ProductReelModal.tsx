@@ -297,7 +297,6 @@ export function ProductReelModal({
       volume: audioVolume,
       enableVoiceover: enableVoiceover,
       language: savedLang,
-      voiceName: selectedVoice,
     });
 
     reelAudioEngine.start({
@@ -319,7 +318,6 @@ export function ProductReelModal({
     audioVolume,
     enableVoiceover,
     savedLang,
-    selectedVoice,
     resolvedProductName,
     artisanName,
     product.artisanName,
@@ -344,7 +342,7 @@ export function ProductReelModal({
     } else {
       reelAudioEngine.stop();
     }
-  }, [isOpen, selectedHookIndex, selectedAudioId, enableVoiceover, savedLang, selectedVoice, triggerAudioPlayback]);
+  }, [isOpen, selectedHookIndex, selectedAudioId, enableVoiceover, savedLang, triggerAudioPlayback]);
 
   // Prefetch voiceovers for all hook options when modal opens or language changes
   useEffect(() => {
