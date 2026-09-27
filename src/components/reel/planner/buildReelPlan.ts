@@ -4,7 +4,7 @@ import { calculateVirtualCrop } from './cropPlanner';
 import { createSeededRandom } from './seededRandom';
 import { REEL_THEMES, inferReelTheme } from '../themePresets';
 
-const TOTAL_DURATION_FRAMES = 450; // 15.0 seconds at 30 fps
+const TOTAL_DURATION_FRAMES = 720; // 24.0 seconds at 30 fps
 const FPS = 30;
 
 /**
@@ -46,12 +46,12 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
 
   // Pick scene narrative based on available data
   if (hasMaterials && hasStory) {
-    // 5-Scene Narrative: 90 frames each = 450 frames
-    // 1. Hero Reveal
+    // 5-Scene Narrative: 170 + 140 + 140 + 135 + 135 = 720 frames (24.0s)
+    // 1. Hero Reveal (includes 66-frame intro buffer + 100-year snapshot)
     scenes.push({
       id: 'scene-hero',
       type: 'hero-reveal',
-      durationInFrames: 90,
+      durationInFrames: 170,
       crop: calculateVirtualCrop({ shotType: 'hero-wide', seed: seedInt }),
       headline: heroHeadline,
       subheadline: heroSubheadline,
@@ -63,7 +63,7 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
     scenes.push({
       id: 'scene-macro',
       type: 'macro-detail',
-      durationInFrames: 90,
+      durationInFrames: 140,
       crop: calculateVirtualCrop({ shotType: 'macro-detail', seed: seedInt }),
       headline: verified.craftStyle || 'Artisanal Technique',
       metadataLabel: 'SURFACE & TEXTURE',
@@ -74,7 +74,7 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
     scenes.push({
       id: 'scene-material',
       type: 'material-provenance',
-      durationInFrames: 90,
+      durationInFrames: 140,
       crop: calculateVirtualCrop({ shotType: 'material-texture', seed: seedInt }),
       headline: verified.materials.slice(0, 2).join(' • '),
       metadataLabel: 'VERIFIED MATERIALS',
@@ -82,11 +82,11 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
       imageIndex: hasMultipleImages && verified.images.length > 2 ? 2 : 0,
     });
 
-    // 4. Artisan Story / Heritage Note
+    // 4. Artisan Story / Heritage Note (Voiceover finishes completely here)
     scenes.push({
       id: 'scene-story',
       type: 'artisan-quote',
-      durationInFrames: 90,
+      durationInFrames: 135,
       crop: calculateVirtualCrop({ shotType: 'asymmetric-editorial', seed: seedInt }),
       headline: verified.artisanName ? `From ${verified.artisanName}` : 'Artisan Legacy',
       metadataLabel: 'AUTHENTIC STORY',
@@ -94,11 +94,11 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
       imageIndex: 0,
     });
 
-    // 5. Conversion Outro
+    // 5. Conversion Outro (Pure ambient flute music with price tag & CTA)
     scenes.push({
       id: 'scene-outro',
       type: 'conversion-outro',
-      durationInFrames: 90,
+      durationInFrames: 135,
       crop: calculateVirtualCrop({ shotType: 'hero-outro', seed: seedInt }),
       headline: verified.title,
       subheadline: verified.priceFormatted || undefined,
@@ -106,12 +106,12 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
       imageIndex: 0,
     });
   } else if (hasMaterials || hasStory) {
-    // 4-Scene Narrative: 110, 110, 110, 120 = 450 frames
+    // 4-Scene Narrative: 190, 175, 175, 180 = 720 frames (24.0s)
     // 1. Hero Reveal
     scenes.push({
       id: 'scene-hero',
       type: 'hero-reveal',
-      durationInFrames: 110,
+      durationInFrames: 190,
       crop: calculateVirtualCrop({ shotType: 'hero-wide', seed: seedInt }),
       headline: heroHeadline,
       subheadline: heroSubheadline,
@@ -123,7 +123,7 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
     scenes.push({
       id: 'scene-macro',
       type: 'macro-detail',
-      durationInFrames: 110,
+      durationInFrames: 175,
       crop: calculateVirtualCrop({ shotType: 'macro-detail', seed: seedInt }),
       headline: verified.craftStyle || 'Artisanal Technique',
       metadataLabel: 'SURFACE & TEXTURE',
@@ -135,7 +135,7 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
       scenes.push({
         id: 'scene-material',
         type: 'material-provenance',
-        durationInFrames: 110,
+        durationInFrames: 175,
         crop: calculateVirtualCrop({ shotType: 'material-texture', seed: seedInt }),
         headline: verified.materials.slice(0, 3).join(' • '),
         metadataLabel: 'VERIFIED MATERIALS',
@@ -146,7 +146,7 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
       scenes.push({
         id: 'scene-story',
         type: 'artisan-quote',
-        durationInFrames: 110,
+        durationInFrames: 175,
         crop: calculateVirtualCrop({ shotType: 'asymmetric-editorial', seed: seedInt }),
         headline: verified.artisanName ? `From ${verified.artisanName}` : 'Craft Heritage',
         metadataLabel: 'AUTHENTIC STORY',
@@ -159,7 +159,7 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
     scenes.push({
       id: 'scene-outro',
       type: 'conversion-outro',
-      durationInFrames: 120,
+      durationInFrames: 180,
       crop: calculateVirtualCrop({ shotType: 'hero-outro', seed: seedInt }),
       headline: verified.title,
       subheadline: verified.priceFormatted || undefined,
@@ -167,12 +167,12 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
       imageIndex: 0,
     });
   } else {
-    // Minimal Data: 3-Scene Narrative: 150, 150, 150 = 450 frames
+    // Minimal Data: 3-Scene Narrative: 240, 240, 240 = 720 frames (24.0s)
     // 1. Hero Reveal
     scenes.push({
       id: 'scene-hero',
       type: 'hero-reveal',
-      durationInFrames: 150,
+      durationInFrames: 240,
       crop: calculateVirtualCrop({ shotType: 'hero-wide', seed: seedInt }),
       headline: heroHeadline,
       subheadline: heroSubheadline,
@@ -184,7 +184,7 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
     scenes.push({
       id: 'scene-macro',
       type: 'macro-detail',
-      durationInFrames: 150,
+      durationInFrames: 240,
       crop: calculateVirtualCrop({ shotType: 'macro-detail', seed: seedInt }),
       headline: verified.craftStyle || 'Artisanal Form',
       metadataLabel: 'INTRICATE CRAFT',
@@ -195,7 +195,7 @@ export function buildReelPlan(props: ProductReelProps): ReelPlan {
     scenes.push({
       id: 'scene-outro',
       type: 'conversion-outro',
-      durationInFrames: 150,
+      durationInFrames: 240,
       crop: calculateVirtualCrop({ shotType: 'hero-outro', seed: seedInt }),
       headline: verified.title,
       subheadline: verified.priceFormatted || undefined,

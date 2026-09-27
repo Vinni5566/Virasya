@@ -19,7 +19,7 @@ export const ProductReelComposition: React.FC<ProductReelProps> = (props) => {
   const fallbackImage = verifiedData.images[0] || 'https://picsum.photos/seed/craft/1080/1920';
 
   // Subtle ambient camera drift for background bleed
-  const bgScale = interpolate(frame, [0, 450], [1.22, 1.28], {
+  const bgScale = interpolate(frame, [0, plan.durationInFrames || 720], [1.22, 1.28], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

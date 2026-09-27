@@ -57,16 +57,16 @@ interface ProductReelModalProps {
 
 const AUDIO_TRACKS = [
   {
+    id: 'royal-sitar',
+    name: 'Sitar Folk',
+    vibe: 'Palace Santoor & Strings',
+    icon: '🪕',
+  },
+  {
     id: 'bansuri-folk',
     name: 'Bansuri Flute',
     vibe: 'Warm Acoustic Folk',
     icon: '🪈',
-  },
-  {
-    id: 'royal-sitar',
-    name: 'Royal Sitar',
-    vibe: 'Palace Santoor & Strings',
-    icon: '🪕',
   },
   {
     id: 'temple-tanpura',
@@ -83,10 +83,10 @@ const AUDIO_TRACKS = [
 ];
 
 const AI_VOICES = [
-  { id: 'Charon', name: 'Charon', role: 'Heritage Doc' },
-  { id: 'Kore', name: 'Kore', role: 'Warm Female' },
+  { id: 'Charon', name: 'Charon', role: 'Calm Male Narrator' },
   { id: 'Fenrir', name: 'Fenrir', role: 'Deep Story' },
-  { id: 'Zephyr', name: 'Zephyr', role: 'Calm Poetic' },
+  { id: 'Puck', name: 'Puck', role: 'Warm Friendly Male' },
+  { id: 'Kore', name: 'Kore', role: 'Gentle Female Narrator' },
 ];
 
 export function ProductReelModal({
@@ -135,8 +135,9 @@ export function ProductReelModal({
   const [isPlayingAudio, setIsPlayingAudio] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [audioVolume, setAudioVolume] = useState(0.85);
-  const [selectedAudioId, setSelectedAudioId] = useState<string>('bansuri-folk');
-  const [enableVoiceover, setEnableVoiceover] = useState(false);
+  const [selectedAudioId, setSelectedAudioId] = useState<string>('royal-sitar');
+  const [enableVoiceover, setEnableVoiceover] = useState(true);
+  const [selectedVoice, setSelectedVoice] = useState<string>('Charon');
 
   // Extract saved language and localized field values
   const savedLang = activeLang || (product as any).language || 'English';
@@ -243,7 +244,7 @@ export function ProductReelModal({
         story: resolvedStory,
         culturalNote: product.culturalNote,
         variantSalt: `hook_${selectedHookIndex}`,
-        durationSeconds: 15,
+        durationSeconds: 24,
         onProgress: (percent, statusText) => {
           setExportPercent(percent);
           setExportProgressText(statusText);
@@ -344,42 +345,63 @@ export function ProductReelModal({
     }
   }, [isOpen, selectedHookIndex, selectedAudioId, enableVoiceover, savedLang, triggerAudioPlayback]);
 
-  // Prefetch voiceovers for all hook options when modal opens or language changes
+  // Prefetch voiceover for the currently active hook only to stay well within API rate limits
   useEffect(() => {
-    if (isOpen && enableVoiceover) {
-      hookOptions.forEach((hook) => {
-        reelAudioEngine.prefetchVoiceover({
-          productName: resolvedProductName,
-          artisanName: artisanName || product.artisanName || i18n.masterCraftsman,
-          craftType: resolvedCraftType,
-          region: resolvedRegion,
-          materials: resolvedMaterials,
-          price: product.price,
-          story: resolvedStory || resolvedDescription,
-          hookTitle: hook.title,
-          language: savedLang,
-        });
+    if (isOpen && enableVoiceover && currentHook) {
+      reelAudioEngine.prefetchVoiceover({
+        productName: resolvedProductName,
+        artisanName: artisanName || product.artisanName || i18n.masterCraftsman,
+        craftType: resolvedCraftType,
+        region: resolvedRegion,
+        materials: resolvedMaterials,
+        price: product.price,
+        story: resolvedStory || resolvedDescription,
+        hookTitle: currentHook.title,
+        language: savedLang,
       });
     }
-  }, [isOpen, enableVoiceover, hookOptions, resolvedProductName, artisanName, product.artisanName, i18n.masterCraftsman, resolvedCraftType, resolvedRegion, resolvedMaterials, product.price, resolvedStory, resolvedDescription, savedLang]);
+  }, [isOpen, enableVoiceover, currentHook, resolvedProductName, artisanName, product.artisanName, i18n.masterCraftsman, resolvedCraftType, resolvedRegion, resolvedMaterials, product.price, resolvedStory, resolvedDescription, savedLang]);
 
-  // Synchronize Voiceover with Player Loop
+  // Synchronize Voiceover & Soundtrack with Remotion Player Timeline
   const lastFrameRef = useRef<number>(0);
+
   useEffect(() => {
     const player = playerRef.current;
     if (!player || !isOpen) return;
 
+    const handlePlay = () => {
+      setIsPlayingAudio(true);
+      reelAudioEngine.resume();
+    };
+
+    const handlePause = () => {
+      setIsPlayingAudio(false);
+      reelAudioEngine.pause();
+    };
+
+    const handleEnded = () => {
+      reelAudioEngine.handleVideoLoop();
+    };
+
     const handleFrameUpdate = (e: any) => {
       const currentFrame = e.detail?.frame ?? 0;
-      if (lastFrameRef.current > 400 && currentFrame < 25) {
-        // Video looped back to frame 0 -> replay voiceover
+
+      // Handle video loop back to frame 0 -> restart audio from beginning
+      if (lastFrameRef.current > 680 && currentFrame < 35) {
         reelAudioEngine.handleVideoLoop();
       }
       lastFrameRef.current = currentFrame;
     };
 
+    player.addEventListener('play', handlePlay);
+    player.addEventListener('pause', handlePause);
+    player.addEventListener('ended', handleEnded);
     player.addEventListener('frameupdate', handleFrameUpdate);
+
     return () => {
+      player.removeEventListener('play', handlePlay);
+      player.removeEventListener('pause', handlePause);
+      player.removeEventListener('ended', handleEnded);
       player.removeEventListener('frameupdate', handleFrameUpdate);
     };
   }, [isMounted, isOpen]);
@@ -530,12 +552,12 @@ export function ProductReelModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl w-[95vw] sm:w-full p-0 overflow-hidden bg-[#FDFBF7] text-foreground rounded-[24px] sm:rounded-[40px] shadow-2xl border border-amber-900/15 max-h-[92vh] overflow-y-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[560px]">
-          {/* Left Column: Remotion 9:16 Video Player Preview inside Luxury Phone Frame */}
-          <div className="lg:col-span-5 bg-gradient-to-b from-amber-950/10 via-amber-900/5 to-amber-950/10 flex flex-col items-center justify-center p-4 sm:p-8 border-b lg:border-b-0 lg:border-r border-amber-900/10 relative">
+      <DialogContent className="max-w-5xl w-[95vw] sm:w-full p-0 overflow-hidden bg-[#FDFBF7] text-foreground rounded-[24px] sm:rounded-[36px] shadow-2xl border border-amber-900/15 max-h-[90vh]">
+        <div className="flex flex-col lg:flex-row min-h-[560px] max-h-[90vh] overflow-hidden">
+          {/* Left Column: Fixed Compact Phone Frame Preview */}
+          <div className="w-full lg:w-[340px] flex-shrink-0 bg-[#F6F1EA] flex flex-col items-center justify-center p-4 border-b lg:border-b-0 lg:border-r border-amber-900/10 relative">
             {/* Phone Bezel Frame */}
-            <div className="w-full max-w-[220px] sm:max-w-[280px] aspect-[9/16] rounded-[28px] sm:rounded-[38px] overflow-hidden shadow-[0_20px_50px_rgba(40,20,10,0.25)] border-[4px] sm:border-[5px] border-amber-900/30 relative bg-black group ring-1 ring-amber-500/20">
+            <div className="w-full max-w-[230px] sm:max-w-[260px] aspect-[9/16] rounded-[30px] overflow-hidden shadow-[0_15px_45px_rgba(40,20,10,0.22)] border-[4px] border-amber-900/30 relative bg-black group ring-1 ring-amber-500/20">
               {/* Speaker notch */}
               <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-12 sm:w-16 h-1.5 bg-zinc-800 rounded-full z-40" />
 
@@ -545,7 +567,7 @@ export function ProductReelModal({
                     ref={playerRef}
                     component={ProductReelComposition as any}
                     inputProps={compositionProps}
-                    durationInFrames={450}
+                    durationInFrames={720}
                     compositionWidth={1080}
                     compositionHeight={1920}
                     fps={30}
@@ -633,7 +655,7 @@ export function ProductReelModal({
           </div>
 
           {/* Right Column: Customization, AI Hooks, Audio, & Instant Social Share Hub */}
-          <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto max-h-[85vh] bg-[#FDFBF7]">
+          <div className="flex-1 overflow-y-auto max-h-[88vh] p-6 sm:p-8 pr-4 sm:pr-6 bg-[#FDFBF7]">
             <div>
               {/* Header */}
               <div className="flex items-start justify-between gap-4 mb-5">
@@ -715,7 +737,52 @@ export function ProductReelModal({
                 </div>
               </div>
 
-              {/* 3. Adaptive Cinematic Theme Switcher */}
+              {/* 3. AI Documentary Voiceover */}
+              <div className="mb-5 p-3.5 rounded-2xl bg-white border border-amber-900/10 shadow-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Mic className={`h-4 w-4 ${enableVoiceover ? 'text-amber-600 animate-pulse' : 'text-muted-foreground'}`} />
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                      AI Documentary Voiceover
+                    </span>
+                    {savedLang && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-800 border border-amber-500/20">
+                        {savedLang}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextState = !enableVoiceover;
+                      setEnableVoiceover(nextState);
+                      reelAudioEngine.setConfig({ enableVoiceover: nextState });
+                      triggerAudioPlayback();
+                    }}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      enableVoiceover ? 'bg-primary' : 'bg-muted-foreground/30'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        enableVoiceover ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {enableVoiceover && (
+                  <div className="flex items-center justify-between pt-1 animate-in fade-in">
+                    <p className="text-[11px] text-amber-900/80 font-medium flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Discovery Channel Male Narrator (<strong className="font-bold text-amber-950">Charon</strong>) • Soothing Heritage Story</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Adaptive Cinematic Theme Switcher */}
               <div className="mb-5 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">

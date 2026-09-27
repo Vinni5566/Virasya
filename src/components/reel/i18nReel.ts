@@ -395,6 +395,15 @@ export function generateLocalizedReelHooks(params: {
   const maker = params.artisanName || 'Master Artisan';
   const mat = params.materials || 'Pure Materials';
 
+  const fullSearch = `${params.productName} ${craft} ${mat}`.toLowerCase();
+  const isTextile = /saree|sari|silk|shawl|weave|woven|fabric|textile|dupatta|scarf|stole/i.test(fullSearch);
+  const isMetal = /metal|brass|bronze|copper|iron|dhokra|silver|alloy|bell metal/i.test(fullSearch);
+  const isPottery = /pottery|clay|ceramic|terracotta|blue pottery/i.test(fullSearch);
+  const isWood = /wood|carv|sandalwood|teak/i.test(fullSearch);
+
+  const actionVerb = isTextile ? 'Handwoven' : isMetal ? 'Hand-cast' : isPottery ? 'Hand-molded' : isWood ? 'Hand-carved' : 'Handcrafted';
+  const processTerm = isTextile ? 'Traditional Handloom Weaving' : isMetal ? 'Ancient Metal Casting' : isPottery ? 'Artisanal Clay Molding' : isWood ? 'Master Wood Carving' : 'Master Handcrafting';
+
   if (lang === 'Hindi') {
     return [
       {
@@ -624,12 +633,12 @@ export function generateLocalizedReelHooks(params: {
   return [
     {
       id: 'heritage-secret',
-      title: `The 100-Year Heritage of ${region}`,
-      subtext: `Handmade with pure devotion by ${maker}`,
+      title: `The 100-Year ${isTextile ? 'Weaving' : 'Craft'} Heritage of ${region}`,
+      subtext: `${actionVerb} with pure devotion by ${maker}`,
     },
     {
       id: 'slow-craft',
-      title: `40+ Hours of Master Handcrafting`,
+      title: `40+ Hours of ${processTerm}`,
       subtext: `100% authentic ${craft} with zero machine shortcuts`,
     },
     {
@@ -640,7 +649,7 @@ export function generateLocalizedReelHooks(params: {
     {
       id: 'rare-find',
       title: `A Rare Living Heritage Masterpiece`,
-      subtext: `Handcrafted from genuine ${mat}`,
+      subtext: `${actionVerb} from genuine ${mat}`,
     },
   ];
 }

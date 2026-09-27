@@ -78,6 +78,29 @@ export const HeroRevealScene: React.FC<HeroRevealSceneProps> = ({
         }}
       />
 
+      {/* Layer: Intro Branding Seal (Frames 0 to 66: ~2.2s intro audio warmup buffer) */}
+      {frame < 70 && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center z-30 pointer-events-none"
+          style={{
+            opacity: interpolate(frame, [0, 10, 52, 66], [0, 1, 1, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            }),
+            transform: `scale(${interpolate(frame, [0, 66], [0.92, 1.05], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })})`,
+          }}
+        >
+          <div className="flex flex-col items-center gap-3 px-8 py-6 rounded-3xl bg-black/60 backdrop-blur-md border border-amber-500/35 shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-200 flex items-center justify-center shadow-lg">
+              <span className="text-2xl">✨</span>
+            </div>
+            <span className="text-amber-300 font-mono text-xs sm:text-sm tracking-[0.3em] font-extrabold uppercase drop-shadow-md">
+              VIRASYA • HERITAGE CRAFT
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Layer: Editorial Typography */}
       <div className="absolute inset-0 flex flex-col justify-between p-12 sm:p-16 z-20 pointer-events-none">
         {/* Top Metadata */}
@@ -86,7 +109,7 @@ export const HeroRevealScene: React.FC<HeroRevealSceneProps> = ({
             <ArchivalMetadata
               label={scene.metadataLabel}
               sublabel={scene.subheadline}
-              delayFrames={5}
+              delayFrames={66}
               accentColor={theme.accentColor}
             />
           )}
@@ -96,7 +119,7 @@ export const HeroRevealScene: React.FC<HeroRevealSceneProps> = ({
         <div className="space-y-4 pb-8">
           <EditorialHeadline
             title={scene.headline || ''}
-            delayFrames={12}
+            delayFrames={68}
             color="#FFFFFF"
           />
         </div>

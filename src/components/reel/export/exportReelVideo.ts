@@ -157,7 +157,7 @@ function roundRect(
 export async function exportReelVideo(
   options: ExportReelOptions
 ): Promise<{ success: boolean; filename: string; blobUrl: string }> {
-  const { onProgress, durationSeconds = 15 } = options;
+  const { onProgress, durationSeconds = 24 } = options;
 
   onProgress?.(5, 'Constructing High-Fidelity Reel Plan...');
 
