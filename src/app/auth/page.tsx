@@ -109,10 +109,15 @@ function AuthContent() {
 
   // Route user based on their profile role
   const routeUserByRole = (userRole?: string) => {
+    const redirectUrl = searchParams.get('redirect');
+    if (redirectUrl) {
+      router.push(redirectUrl);
+      return;
+    }
     if (userRole === 'artisan') {
       router.push('/dashboard');
     } else {
-      router.push('/marketplace');
+      router.push('/');
     }
   };
 
