@@ -136,8 +136,7 @@ export function ProductReelModal({
   const [isMuted, setIsMuted] = useState(false);
   const [audioVolume, setAudioVolume] = useState(0.85);
   const [selectedAudioId, setSelectedAudioId] = useState<string>('bansuri-folk');
-  const [enableVoiceover, setEnableVoiceover] = useState(true);
-  const [selectedVoice, setSelectedVoice] = useState<string>('Charon');
+  const [enableVoiceover, setEnableVoiceover] = useState(false);
 
   // Extract saved language and localized field values
   const savedLang = activeLang || (product as any).language || 'English';
@@ -392,23 +391,6 @@ export function ProductReelModal({
     setSelectedAudioId(trackId);
     reelAudioEngine.setConfig({ trackId });
     triggerAudioPlayback();
-  };
-
-  // Handle AI Voice Selection Change
-  const handleSelectVoice = (voiceId: string) => {
-    setSelectedVoice(voiceId);
-    reelAudioEngine.setConfig({ voiceName: voiceId });
-    triggerAudioPlayback();
-  };
-
-  // Handle Voiceover Toggle
-  const handleToggleVoiceover = () => {
-    const next = !enableVoiceover;
-    setEnableVoiceover(next);
-    reelAudioEngine.setConfig({ enableVoiceover: next });
-    if (next) {
-      triggerAudioPlayback();
-    }
   };
 
   // Handle Mute Toggle
@@ -673,7 +655,7 @@ export function ProductReelModal({
                     {i18n.studioHeading}
                   </DialogTitle>
                   <DialogDescription className="text-muted-foreground text-sm mt-1">
-                    Silky cinematic pan & sliding motion, synchronized regional voiceover, and matched heritage soundscapes.
+                    Silky cinematic pan & sliding motion, rotating heritage mandalas, and matched soundscapes.
                   </DialogDescription>
                 </div>
               </div>
@@ -702,24 +684,13 @@ export function ProductReelModal({
                 </div>
               </div>
 
-              {/* 2. Audio Mood & Voiceover Controls */}
+              {/* 2. Audio Mood Soundtrack */}
               <div className="mb-5 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
                     <Music className="h-3.5 w-3.5 text-amber-600" />
                     {i18n.audioSoundtrack}
                   </label>
-                  <button
-                    onClick={handleToggleVoiceover}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1.5 ${
-                      enableVoiceover
-                        ? 'bg-amber-500/15 text-amber-800 border-amber-500/30'
-                        : 'bg-zinc-100 text-zinc-500 border-zinc-200'
-                    }`}
-                  >
-                    <Mic className="h-3 w-3" />
-                    {i18n.audioVoiceover}: {enableVoiceover ? 'ON' : 'OFF'}
-                  </button>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {AUDIO_TRACKS.map((track) => {
@@ -744,37 +715,6 @@ export function ProductReelModal({
                     );
                   })}
                 </div>
-
-                {/* AI Studio Voice Selection */}
-                {enableVoiceover && (
-                  <div className="pt-2">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                        <Mic className="h-3 w-3 text-amber-600" />
-                        Studio Documentary Voice (Gemini AI)
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                      {AI_VOICES.map((v) => {
-                        const isSelected = selectedVoice === v.id;
-                        return (
-                          <button
-                            key={v.id}
-                            onClick={() => handleSelectVoice(v.id)}
-                            className={`px-2.5 py-1.5 rounded-xl border text-left transition-all ${
-                              isSelected
-                                ? 'bg-primary/10 border-primary text-primary font-bold shadow-xs'
-                                : 'bg-white border-amber-900/10 text-muted-foreground hover:bg-secondary/40'
-                            }`}
-                          >
-                            <p className="text-[11px] leading-tight font-bold">{v.name}</p>
-                            <p className="text-[9px] text-muted-foreground leading-tight">{v.role}</p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* 3. Adaptive Cinematic Theme Switcher */}

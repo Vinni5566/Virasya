@@ -16,6 +16,7 @@ import {
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Product } from '@/lib/types';
+import { CURATED_HERITAGE_PRODUCTS } from '@/lib/curated-products';
 
 const CATEGORIES = [
   'All', 
@@ -44,15 +45,22 @@ export default function MarketplacePage() {
 
   const { data: products, isLoading } = useCollection<Product>(productsQuery);
 
+  // Combine live Firestore products with curated master heritage crafts
+  const allAvailableProducts = useMemo(() => {
+    const live = products || [];
+    const liveIds = new Set(live.map(p => p.id));
+    const nonDuplicateCurated = CURATED_HERITAGE_PRODUCTS.filter(cp => !liveIds.has(cp.id));
+    return [...live, ...nonDuplicateCurated];
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
-    if (!products) return [];
-    return products.filter(p => {
+    return allAvailableProducts.filter(p => {
       const matchesCategory = selectedCategory === 'All' || p.craftType === selectedCategory;
       const matchesSearch = p.productName.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             p.region.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, searchQuery, products]);
+  }, [selectedCategory, searchQuery, allAvailableProducts]);
 
   // Sort logic (simple client-side sort for prototype)
   const sortedProducts = useMemo(() => {
