@@ -5,8 +5,10 @@
  * English, Hindi, Tamil, Bengali, Marathi, Gujarati, Telugu, Kannada, Malayalam, Punjabi.
  */
 
-import { ai, executePromptWithFailover } from '@/ai/genkit';
+import { GoogleGenAI } from '@google/genai';
 import { z } from 'genkit';
+
+const aiGen = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const LANGUAGE_CODE_MAP: Record<string, string> = {
   English: 'en',
@@ -782,29 +784,10 @@ async function fallbackNeuralTranslate(input: TranslationInput): Promise<Transla
   };
 }
 
-const translationPrompt = ai.definePrompt({
-  name: 'translationPrompt',
-  input: { schema: TranslationInputSchema },
-  output: { schema: TranslationOutputSchema },
-  prompt: `You are a master translator for authentic Indian handicraft listings. 
-Translate ALL provided product listing fields strictly into {{{targetLanguage}}}. 
-CRITICAL RULE: Write every translated field entirely in the proper native script of {{{targetLanguage}}} (e.g. Devanagari script for Hindi/Marathi, Tamil script for Tamil, Bengali script for Bengali, Gujarati script for Gujarati, Telugu script for Telugu, Kannada script for Kannada, Malayalam script for Malayalam, Gurmukhi script for Punjabi). 
-Do NOT leave any English words or mixed hybrid sentences. Every field must be 100% translated and culturally authentic.
-
-Title: {{{title}}}
-Description: {{{description}}}
-Story: {{{story}}}
-{{#if materials}}Materials: {{{materials}}}{{/if}}
-{{#if style}}Style: {{{style}}}{{/if}}
-{{#if category}}Category: {{{category}}}{{/if}}
-{{#if region}}Region: {{{region}}}{{/if}}
-{{#if dimensions}}Dimensions: {{{dimensions}}}{{/if}}`,
-});
-
 export async function translateListing(input: TranslationInput): Promise<TranslationOutput> {
   const langCode = LANGUAGE_CODE_MAP[input.targetLanguage] || 'en';
 
-  if (langCode === 'en') {
+  if (langCode === 'en' || input.targetLanguage === 'English') {
     return {
       translatedTitle: input.title,
       translatedDescription: input.description,
@@ -817,29 +800,64 @@ export async function translateListing(input: TranslationInput): Promise<Transla
     };
   }
 
-  // Attempt Genkit AI prompt if GEMINI_API_KEY is configured with a 12s timeout
+  // Attempt direct high-fidelity Gemini 3.8 Flash translation with strict JSON format
   if (process.env.GEMINI_API_KEY) {
     try {
-      const aiPromise = executePromptWithFailover(translationPrompt, input);
-      const timeoutPromise = new Promise<{ output?: null }>((_, reject) =>
-        setTimeout(() => reject(new Error('AI generation timeout - transitioning to fast neural translation')), 12000)
-      );
+      const prompt = `You are a master linguistic expert and translator for authentic Indian handicraft listings.
+Translate all provided handicraft listing fields into ${input.targetLanguage}.
 
-      const output = await Promise.race([aiPromise, timeoutPromise]) as any;
-      if (output && output.translatedTitle) {
-        return {
-          translatedTitle: postProcessTranslation(output.translatedTitle, langCode),
-          translatedDescription: postProcessTranslation(output.translatedDescription, langCode),
-          translatedStory: postProcessTranslation(output.translatedStory, langCode),
-          translatedMaterials: postProcessTranslation(output.translatedMaterials || input.materials || '', langCode),
-          translatedStyle: postProcessTranslation(output.translatedStyle || input.style || '', langCode),
-          translatedCategory: postProcessTranslation(output.translatedCategory || input.category || '', langCode),
-          translatedRegion: postProcessTranslation(output.translatedRegion || input.region || '', langCode),
-          translatedDimensions: postProcessTranslation(output.translatedDimensions || input.dimensions || '', langCode),
-        };
+SOURCE LISTING FIELDS (in English):
+- title: ${input.title}
+- description: ${input.description}
+- story: ${input.story}
+- materials: ${input.materials || ''}
+- style: ${input.style || ''}
+- category: ${input.category || ''}
+- region: ${input.region || ''}
+- dimensions: ${input.dimensions || ''}
+
+CRITICAL RULES:
+1. Write 100% of every translated string entirely in the native script of ${input.targetLanguage} (e.g. Devanagari script for Hindi/Marathi, Tamil script for Tamil, Bengali script for Bengali, Gujarati script for Gujarati, Telugu script for Telugu, Kannada script for Kannada, Malayalam script for Malayalam, Gurmukhi script for Punjabi).
+2. STRICT ZERO SCRIPT MIXING: Do NOT leave random words in English or mix multiple regional scripts (e.g. do not put Telugu text in a Hindi translation).
+3. Preserve numbers/measurements accurately.
+4. Output MUST be a valid JSON object only with exact keys:
+{
+  "translatedTitle": "...",
+  "translatedDescription": "...",
+  "translatedStory": "...",
+  "translatedMaterials": "...",
+  "translatedStyle": "...",
+  "translatedCategory": "...",
+  "translatedRegion": "...",
+  "translatedDimensions": "..."
+}`;
+
+      const response = await aiGen.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      });
+
+      const responseText = response.text?.trim();
+      if (responseText) {
+        const parsed = JSON.parse(responseText);
+        if (parsed.translatedTitle && parsed.translatedDescription) {
+          return {
+            translatedTitle: parsed.translatedTitle,
+            translatedDescription: parsed.translatedDescription,
+            translatedStory: parsed.translatedStory || parsed.translatedDescription,
+            translatedMaterials: parsed.translatedMaterials || input.materials || '',
+            translatedStyle: parsed.translatedStyle || input.style || '',
+            translatedCategory: parsed.translatedCategory || input.category || '',
+            translatedRegion: parsed.translatedRegion || input.region || '',
+            translatedDimensions: parsed.translatedDimensions || input.dimensions || '',
+          };
+        }
       }
     } catch (err) {
-      console.warn('Genkit translation prompt failover -> switching to neural fallback engine:', err);
+      console.warn('Gemini 3.8 Flash translation note -> falling back to neural dictionary:', err);
     }
   }
 

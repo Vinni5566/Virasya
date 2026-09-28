@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     let chosenQuery = queries[0] || input.productTitle || input.craftType;
     let rawResults: RawShoppingItem[] = [];
 
-    const apiKey = process.env.SERPAPI_KEY;
+    const apiKey = (process.env.SERPAPI_KEY || process.env.SERP_API_KEY || '').trim();
     if (!apiKey) {
       const fallbackResponse = buildRegionalBenchmarkPricing(input, chosenQuery);
       return NextResponse.json(fallbackResponse, { status: 200 });

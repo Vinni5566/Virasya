@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { PricingEngineResponse, ComparableListing } from '@/lib/pricing-engine';
+import { getStep5I18n } from '@/lib/step5-i18n';
 
 export interface PricingCardProps {
   craftType: string;
@@ -25,6 +26,7 @@ export interface PricingCardProps {
   onPriceRangeDetermined?: (range: { min: number; max: number; reasoning: string }) => void;
   onManualFallbackRequested?: () => void;
   className?: string;
+  language?: string;
 }
 
 export function PricingCard({
@@ -38,7 +40,9 @@ export function PricingCard({
   onPriceRangeDetermined,
   onManualFallbackRequested,
   className = '',
+  language = 'English',
 }: PricingCardProps) {
+  const i18n = getStep5I18n(language);
   const [data, setData] = useState<PricingEngineResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -192,7 +196,7 @@ export function PricingCard({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-headline font-bold text-foreground text-sm tracking-tight">
-                  Dynamic Market Pricing
+                  {i18n.pricingTitle}
                 </h3>
                 {data?.marketConfidence && (
                   <span 
@@ -204,12 +208,14 @@ export function PricingCard({
                         : 'border-amber-200 text-amber-700 bg-amber-50'
                     }`}
                   >
-                    <span>{data.marketConfidence} Confidence</span>
+                    <span>
+                      {data.marketConfidence === 'High' ? i18n.confidenceHigh : data.marketConfidence === 'Medium' ? i18n.confidenceMedium : i18n.confidenceLow}
+                    </span>
                   </span>
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground truncate">
-                Real-time price discovery from authentic Indian handicraft listings
+                {i18n.pricingSubtitle}
               </p>
             </div>
           </div>

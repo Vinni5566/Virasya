@@ -29,6 +29,7 @@ import { ImageEnhancerStudio } from '@/components/ImageEnhancerStudio';
 import { PricingCard } from '@/components/PricingCard';
 import { ManualPriceAdvisorModal } from '@/components/ManualPriceAdvisorModal';
 import { reelAudioEngine } from '@/components/reel/audioEngine';
+import { getStep5I18n } from '@/lib/step5-i18n';
 import {
   triggerFullPageTranslation,
   VIRASYA_LANG_CHANGE_EVENT,
@@ -135,6 +136,7 @@ function ProductUploadContent() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [activeTranslatingLang, setActiveTranslatingLang] = useState<string | null>(null);
   const [activeStep5Lang, setActiveStep5Lang] = useState<string>('English');
+  const step5I18n = getStep5I18n(activeStep5Lang);
   const [isMarketingLoading, setIsMarketingLoading] = useState(false);
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -695,7 +697,7 @@ function ProductUploadContent() {
         story: result.translatedStory || eng.story,
         materials: result.translatedMaterials || eng.materials,
         style: result.translatedStyle || eng.style,
-        category: result.translatedCategory || eng.category,
+        category: eng.category, // Keep canonical English category key so Select dropdown never vanishes
         region: result.translatedRegion || eng.region,
         dimensions: result.translatedDimensions || eng.dimensions,
       };
@@ -1388,6 +1390,7 @@ function ProductUploadContent() {
               onPriceChange={(newPrice) => setDetails(prev => ({ ...prev, price: newPrice }))}
               onPriceRangeDetermined={(range) => setDetails(prev => ({ ...prev, priceRange: range }))}
               onManualFallbackRequested={() => setIsManualPricingModalOpen(true)}
+              language={activeStep5Lang}
             />
 
             {/* Marketing Generator CTA */}
@@ -1400,7 +1403,7 @@ function ProductUploadContent() {
               <span translate="no" className="notranslate inline-flex items-center">
                 {isMarketingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
               </span>
-              <span>Generate Marketing Content</span>
+              <span>{isMarketingLoading ? step5I18n.generatingMarketing : step5I18n.generateMarketing}</span>
             </Button>
           </div>
 
@@ -1408,10 +1411,10 @@ function ProductUploadContent() {
             <Card className="border-none shadow-sm rounded-[24px] sm:rounded-[40px] bg-white p-4 sm:p-8">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-headline font-bold">Listing Details</h2>
+                  <h2 className="text-xl sm:text-2xl font-headline font-bold">{step5I18n.listingDetails}</h2>
                   {details.titleRegional && (
                     <p className="text-xs text-primary font-serif italic mt-0.5">
-                      <span>Regional: </span>
+                      <span>{step5I18n.regionalTag} </span>
                       <span>{details.titleRegional}</span>
                     </p>
                   )}
@@ -1434,8 +1437,6 @@ function ProductUploadContent() {
                         onClick={() => handleTranslate(l)}
                         disabled={isTranslating}
                       >
-                        {/* Always render both icons, toggle visibility via CSS — prevents
-                            insertBefore/removeChild crash from Google Translate DOM mutations */}
                         <span className="notranslate relative inline-flex items-center mr-1 w-3 h-3" translate="no">
                           <Loader2 className={`h-3 w-3 animate-spin absolute inset-0 transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0'}`} />
                           <Globe className={`h-3 w-3 absolute inset-0 transition-opacity ${isCurrent ? 'opacity-0' : 'opacity-100'}`} />
@@ -1450,9 +1451,10 @@ function ProductUploadContent() {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label><span>Product Title</span></Label>
+                    <Label><span>{step5I18n.productTitle}</span></Label>
                     <Input
                       value={details.title}
+                      placeholder={step5I18n.productTitlePlaceholder}
                       onChange={e => {
                         const val = e.target.value;
                         setDetails(prev => ({ ...prev, title: val }));
@@ -1469,7 +1471,7 @@ function ProductUploadContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label><span>Category</span></Label>
+                    <Label><span>{step5I18n.category}</span></Label>
                     <Select
                       value={details.category}
                       onValueChange={v => {
@@ -1482,18 +1484,25 @@ function ProductUploadContent() {
                         }
                       }}
                     >
-                      <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="rounded-xl h-12">
+                        <SelectValue placeholder={step5I18n.selectCategory}>
+                          {step5I18n.categories[details.category] || details.category}
+                        </SelectValue>
+                      </SelectTrigger>
                       <SelectContent>
                         {CRAFT_CATEGORIES.map(c => (
-                          <SelectItem key={c} value={c}><span>{c}</span></SelectItem>
+                          <SelectItem key={c} value={c}>
+                            <span>{step5I18n.categories[c] || c}</span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label><span>Materials Used</span></Label>
+                    <Label><span>{step5I18n.materialsUsed}</span></Label>
                     <Input
                       value={details.materials}
+                      placeholder={step5I18n.materialsPlaceholder}
                       onChange={e => {
                         const val = e.target.value;
                         setDetails(prev => ({ ...prev, materials: val }));
@@ -1510,9 +1519,10 @@ function ProductUploadContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label><span>Craft Style / Tradition</span></Label>
+                    <Label><span>{step5I18n.craftStyleTradition}</span></Label>
                     <Input
                       value={details.style}
+                      placeholder={step5I18n.craftStylePlaceholder}
                       onChange={e => {
                         const val = e.target.value;
                         setDetails(prev => ({ ...prev, style: val }));
@@ -1529,7 +1539,7 @@ function ProductUploadContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label><span>Dimensions / Size</span></Label>
+                    <Label><span>{step5I18n.dimensionsSize}</span></Label>
                     <Input
                       value={details.dimensions}
                       onChange={e => {
@@ -1544,14 +1554,15 @@ function ProductUploadContent() {
                           translationsCacheRef.current[activeLangRef.current].dimensions = val;
                         }
                       }}
-                      placeholder="e.g. 12 x 8 inches"
+                      placeholder={step5I18n.dimensionsPlaceholder}
                       className="rounded-xl h-12"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label><span>Origin Region</span></Label>
+                    <Label><span>{step5I18n.originRegion}</span></Label>
                     <Input
                       value={details.region}
+                      placeholder={step5I18n.originRegionPlaceholder}
                       onChange={e => {
                         const val = e.target.value;
                         setDetails(prev => ({ ...prev, region: val }));
@@ -1568,7 +1579,7 @@ function ProductUploadContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label><span>Selling Price (INR)</span></Label>
+                    <Label><span>{step5I18n.sellingPrice}</span></Label>
                     <Input
                       type="number"
                       value={details.price}
@@ -1578,7 +1589,7 @@ function ProductUploadContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label><span>Stock Quantity</span></Label>
+                    <Label><span>{step5I18n.stockQuantity}</span></Label>
                     <Input
                       type="number"
                       value={details.quantity}
@@ -1590,9 +1601,10 @@ function ProductUploadContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label><span>Short Description</span></Label>
+                  <Label><span>{step5I18n.shortDescription}</span></Label>
                   <Textarea
                     value={details.description}
+                    placeholder={step5I18n.shortDescriptionPlaceholder}
                     onChange={e => {
                       const val = e.target.value;
                       setDetails(prev => ({ ...prev, description: val }));
@@ -1612,7 +1624,7 @@ function ProductUploadContent() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Label><span>Authentic Craft Story</span></Label>
+                      <Label><span>{step5I18n.craftStoryHeritage}</span></Label>
                       {details.storyRegional && activeStep5Lang !== 'English' && (
                         <span className="text-[10px] text-primary font-serif italic">
                           (Regional script)
@@ -1640,6 +1652,7 @@ function ProductUploadContent() {
                   </div>
                   <Textarea
                     value={details.story}
+                    placeholder={step5I18n.craftStoryPlaceholder}
                     onChange={e => {
                       const val = e.target.value;
                       setDetails(prev => ({ ...prev, story: val }));
@@ -1677,7 +1690,7 @@ function ProductUploadContent() {
                       <Loader2 className="h-4 w-4 animate-spin" />
                     </span>
                   ) : null}
-                  <span>Save Draft</span>
+                  <span>{isSaving ? step5I18n.savingDraft : step5I18n.saveAsDraft}</span>
                 </Button>
                 <Button
                   className="w-full sm:flex-1 rounded-full h-12 sm:h-14 shadow-lg text-sm sm:text-base font-bold gap-2"
