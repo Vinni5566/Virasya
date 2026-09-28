@@ -144,39 +144,39 @@ export function ProductReelModal({
   const trans = (product as any).translations?.[savedLang];
 
   const resolvedProductName =
-    savedLang !== 'English' && trans?.title
-      ? trans.title
-      : (product as any).productNameRegional || product.productName;
+    savedLang === 'English'
+      ? (product.productName || (product as any).productNameRegional || 'Handcrafted Heritage')
+      : (trans?.title || (product as any).productNameRegional || product.productName || 'Handcrafted Heritage');
 
   const resolvedDescription =
-    savedLang !== 'English' && trans?.description
-      ? trans.description
-      : product.description;
+    savedLang === 'English'
+      ? (product.description || '')
+      : (trans?.description || product.description || '');
 
   const resolvedStory =
-    savedLang !== 'English' && trans?.story
-      ? trans.story
-      : (product as any).storyRegional || product.story;
+    savedLang === 'English'
+      ? (product.story || product.description || '')
+      : (trans?.story || (product as any).storyRegional || product.story || product.description || '');
 
   const resolvedCraftType =
-    savedLang !== 'English' && trans?.category
-      ? trans.category
-      : product.craftType;
+    savedLang === 'English'
+      ? (product.craftType || '')
+      : (trans?.category || product.craftType || '');
 
   const resolvedMaterials =
-    savedLang !== 'English' && trans?.materials
-      ? trans.materials
-      : product.materials;
+    savedLang === 'English'
+      ? (product.materials || '')
+      : (trans?.materials || product.materials || '');
 
   const resolvedCraftStyle =
-    savedLang !== 'English' && trans?.style
-      ? trans.style
-      : product.craftStyle;
+    savedLang === 'English'
+      ? (product.craftStyle || '')
+      : (trans?.style || product.craftStyle || '');
 
   const resolvedRegion =
-    savedLang !== 'English' && trans?.region
-      ? trans.region
-      : product.region;
+    savedLang === 'English'
+      ? (product.region || '')
+      : (trans?.region || product.region || '');
 
   const i18n = useMemo(() => getReelI18n(savedLang), [savedLang]);
 
@@ -279,6 +279,7 @@ export function ProductReelModal({
   };
 
   const currentHook = hookOptions[selectedHookIndex] || hookOptions[0];
+  const [isSyncingAudio, setIsSyncingAudio] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -290,70 +291,60 @@ export function ProductReelModal({
     }
   }, [initialTheme]);
 
-  // Start / restart audio engine with synchronized storytelling & soundtrack
-  const triggerAudioPlayback = useCallback(() => {
-    reelAudioEngine.setConfig({
-      trackId: selectedAudioId,
-      isMuted: isMuted,
-      volume: audioVolume,
-      enableVoiceover: enableVoiceover,
-      language: savedLang,
-    });
-
-    reelAudioEngine.start({
-      productName: resolvedProductName,
-      artisanName: artisanName || product.artisanName || i18n.masterCraftsman,
-      craftType: resolvedCraftType,
-      region: resolvedRegion,
-      materials: resolvedMaterials,
-      price: product.price,
-      story: resolvedStory || resolvedDescription,
-      hookTitle: currentHook.title,
-      language: savedLang,
-    });
-
-    setIsPlayingAudio(true);
-  }, [
-    selectedAudioId,
-    isMuted,
-    audioVolume,
-    enableVoiceover,
-    savedLang,
-    resolvedProductName,
-    artisanName,
-    product.artisanName,
-    i18n.masterCraftsman,
-    resolvedCraftType,
-    resolvedRegion,
-    resolvedMaterials,
-    product.price,
-    resolvedStory,
-    resolvedDescription,
-    currentHook.title,
-  ]);
+  const savedVoiceover = (product as any)?.voiceover?.[savedLang];
+  const directAudioBase64 = savedVoiceover?.audioBase64 || null;
+  const directAudioScript = savedVoiceover?.script || null;
 
   // Manage Audio Engine Lifecycle & Hook Changes when modal opens or selected hook updates
   useEffect(() => {
+    let isCancelled = false;
+
     if (isOpen) {
-      if (enableVoiceover && currentHook) {
-        reelAudioEngine.prefetchVoiceover({
-          productName: resolvedProductName,
-          artisanName: artisanName || product.artisanName || i18n.masterCraftsman,
-          craftType: resolvedCraftType,
-          region: resolvedRegion,
-          materials: resolvedMaterials,
-          price: product.price,
-          story: resolvedStory || resolvedDescription,
-          hookTitle: currentHook.title,
-          language: savedLang,
-        });
-      }
+      setIsSyncingAudio(true);
       reelAudioEngine.unlock();
-      triggerAudioPlayback();
+
+      reelAudioEngine.setConfig({
+        trackId: selectedAudioId,
+        isMuted: isMuted,
+        volume: audioVolume,
+        enableVoiceover: enableVoiceover,
+        language: savedLang,
+      });
+
+      const audioData = {
+        productName: resolvedProductName,
+        artisanName: artisanName || product.artisanName || i18n.masterCraftsman,
+        craftType: resolvedCraftType,
+        region: resolvedRegion,
+        materials: resolvedMaterials,
+        price: product.price,
+        story: resolvedStory || resolvedDescription,
+        hookTitle: currentHook.title,
+        language: savedLang,
+        voiceoverAudioBase64: directAudioBase64,
+        voiceoverScript: directAudioScript,
+      };
+
+      // Prepare voiceover buffer FIRST so audio & video trigger simultaneously at Frame 0
+      reelAudioEngine.prepareVoiceover(audioData).then(() => {
+        if (isCancelled) return;
+        setIsSyncingAudio(false);
+        reelAudioEngine.start(audioData);
+        setIsPlayingAudio(true);
+
+        const player = playerRef.current;
+        if (player) {
+          player.seekTo(0);
+          player.play();
+        }
+      });
+
       return () => {
+        isCancelled = true;
         reelAudioEngine.stop();
       };
     } else {
+      setIsSyncingAudio(false);
       reelAudioEngine.stop();
     }
   }, [
@@ -361,8 +352,9 @@ export function ProductReelModal({
     selectedHookIndex,
     selectedAudioId,
     enableVoiceover,
+    isMuted,
+    audioVolume,
     savedLang,
-    triggerAudioPlayback,
     currentHook,
     resolvedProductName,
     artisanName,
@@ -374,6 +366,8 @@ export function ProductReelModal({
     product.price,
     resolvedStory,
     resolvedDescription,
+    directAudioBase64,
+    directAudioScript,
   ]);
 
   // Synchronize Voiceover & Soundtrack with Remotion Player Timeline
@@ -576,7 +570,7 @@ export function ProductReelModal({
               <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-12 sm:w-16 h-1.5 bg-zinc-800 rounded-full z-40" />
 
               {isMounted ? (
-                <div id="virasya-remotion-player" className="w-full h-full">
+                <div id="virasya-remotion-player" className="w-full h-full relative">
                   <Player
                     ref={playerRef}
                     component={ProductReelComposition as any}
@@ -590,9 +584,25 @@ export function ProductReelModal({
                       height: '100%',
                     }}
                     controls
-                    autoPlay
+                    autoPlay={false}
                     loop
                   />
+
+                  {/* Synchronizing Voiceover & Video Lockstep Overlay */}
+                  {isSyncingAudio && (
+                    <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex flex-col items-center justify-center z-40 p-4 text-center">
+                      <div className="flex items-end gap-1.5 h-8 mb-3">
+                        <span className="w-1.5 h-4 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-7 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-5 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                        <span className="w-1.5 h-8 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
+                        <span className="w-1.5 h-3 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
+                      </div>
+                      <span className="text-amber-200 text-xs font-bold tracking-wide drop-shadow-sm">
+                        Synchronizing Voiceover...
+                      </span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-amber-800 text-sm">

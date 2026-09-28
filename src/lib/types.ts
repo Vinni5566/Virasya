@@ -17,6 +17,14 @@ export interface MarketingContent {
   promoLine: string;
 }
 
+export interface ProductVoiceover {
+  audioBase64: string;
+  mimeType?: string;
+  script?: string;
+  language?: string;
+  updatedAt?: any;
+}
+
 export interface Product {
   id: string;
   artisanId: string;
@@ -40,6 +48,7 @@ export interface Product {
   tags: string[];
   marketing?: MarketingContent;
   status: 'Draft' | 'Published';
+  voiceover?: Record<string, ProductVoiceover>;
   createdAt: any;
   updatedAt: any;
 }

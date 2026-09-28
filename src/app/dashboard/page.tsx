@@ -20,13 +20,14 @@ import {
   DialogDescription 
 } from '@/components/ui/dialog';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateMarketingContent } from '@/ai/flows/artisan-ai-marketing-generator';
 import { ProductReelModal } from '@/components/ProductReelModal';
 import { reelAudioEngine } from '@/components/reel/audioEngine';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, deleteDoc, doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ArtisanDashboard() {
   const { toast } = useToast();
@@ -50,6 +51,55 @@ export default function ArtisanDashboard() {
   }, [db, user]);
 
   const { data: listings, isLoading: isListingsLoading } = useCollection(productsQuery);
+
+  // Background auto-sync: ensure all listings have their voiceovers pre-cached and saved in DB
+  useEffect(() => {
+    if (!listings || listings.length === 0) return;
+
+    listings.forEach((prod: any) => {
+      const existingVo = prod.voiceover?.['English'];
+      if (existingVo?.audioBase64) {
+        reelAudioEngine.loadDirectVoiceover(existingVo.audioBase64, existingVo.script, 'English');
+      } else {
+        // Generate and persist directly to Firestore DB
+        fetch('/api/voiceover/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productName: prod.productName,
+            artisanName: prod.artisanName || user?.displayName || 'Authentic Artisan',
+            craftType: prod.craftType,
+            region: prod.region,
+            materials: prod.materials,
+            story: prod.story,
+            description: prod.description,
+            language: 'English',
+          }),
+        })
+          .then((res) => res.ok ? res.json() : null)
+          .then((data) => {
+            if (data?.audioBase64) {
+              reelAudioEngine.loadDirectVoiceover(data.audioBase64, data.script, 'English');
+              if (db && prod.id) {
+                const docRef = doc(db, 'products', prod.id);
+                setDocumentNonBlocking(docRef, {
+                  voiceover: {
+                    English: {
+                      audioBase64: data.audioBase64,
+                      mimeType: data.mimeType || 'audio/wav',
+                      script: data.script,
+                      language: 'English',
+                      updatedAt: new Date().toISOString(),
+                    },
+                  },
+                }, { merge: true });
+              }
+            }
+          })
+          .catch((err) => console.warn('Listing voiceover auto-warmup note:', err));
+      }
+    });
+  }, [listings, db, user]);
 
   const stats = [
     { 

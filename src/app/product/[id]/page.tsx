@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo } from 'react';
+import { use, useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -8,11 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Sparkles, ShieldCheck, Heart, ShoppingBag, Share2, Globe, Loader2, MessageSquare, Send, Film } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Product } from '@/lib/types';
 import { CURATED_HERITAGE_PRODUCTS } from '@/lib/curated-products';
 import Link from 'next/link';
 import { askProductAI } from '@/ai/flows/product-qa-flow';
 import { ProductReelModal } from '@/components/ProductReelModal';
+import { reelAudioEngine } from '@/components/reel/audioEngine';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +51,64 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const { data: dbProduct, isLoading } = useDoc<Product>(productRef);
   const curatedFallback = useMemo(() => CURATED_HERITAGE_PRODUCTS.find(p => p.id === id), [id]);
   const product = dbProduct || curatedFallback;
+
+  // Background warm-up: fetch/store voiceover in persistent DB and IndexedDB storage
+  useEffect(() => {
+    if (!product) return;
+
+    const existingVo = (product as any).voiceover?.['English'];
+    if (existingVo?.audioBase64) {
+      // Decode audio instantly from DB document into memory
+      reelAudioEngine.loadDirectVoiceover(existingVo.audioBase64, existingVo.script, 'English');
+    } else {
+      // If voiceover is missing from DB for this listed product, generate and persist it to Firestore DB
+      const generateAndPersist = async () => {
+        try {
+          const res = await fetch('/api/voiceover/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productName: product.productName,
+              artisanName: product.artisanName,
+              craftType: product.craftType,
+              region: product.region,
+              materials: product.materials,
+              story: product.story,
+              description: product.description,
+              language: 'English',
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.audioBase64) {
+              // Cache into audio engine & IndexedDB
+              reelAudioEngine.loadDirectVoiceover(data.audioBase64, data.script, 'English');
+
+              // If product is in Firestore database, write voiceover payload back to product doc
+              if (db && product.id && !id.startsWith('curated-')) {
+                const docRef = doc(db, 'products', product.id);
+                setDocumentNonBlocking(docRef, {
+                  voiceover: {
+                    English: {
+                      audioBase64: data.audioBase64,
+                      mimeType: data.mimeType || 'audio/wav',
+                      script: data.script,
+                      language: 'English',
+                      updatedAt: new Date().toISOString(),
+                    }
+                  }
+                }, { merge: true });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Voiceover auto-sync note:', err);
+        }
+      };
+
+      generateAndPersist();
+    }
+  }, [product, db, id]);
 
   const artisanRef = useMemoFirebase(() => {
     if (!db || !product?.artisanId) return null;

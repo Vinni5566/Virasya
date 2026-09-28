@@ -28,6 +28,7 @@ import { ArtisanVoiceInput, INDIAN_LANGUAGES } from '@/components/ArtisanVoiceIn
 import { ImageEnhancerStudio } from '@/components/ImageEnhancerStudio';
 import { PricingCard } from '@/components/PricingCard';
 import { ManualPriceAdvisorModal } from '@/components/ManualPriceAdvisorModal';
+import { reelAudioEngine } from '@/components/reel/audioEngine';
 import {
   triggerFullPageTranslation,
   VIRASYA_LANG_CHANGE_EVENT,
@@ -840,6 +841,42 @@ function ProductUploadContent() {
       const canonicalRegion = (activeLangRef.current === 'English' ? details.region : eng?.region) || details.region;
       const canonicalDimensions = (activeLangRef.current === 'English' ? details.dimensions : eng?.dimensions) || details.dimensions || null;
 
+      // Immediately generate studio voiceover so it is saved directly into the Firestore database
+      let voiceoverPayload: Record<string, any> = {};
+      try {
+        const voRes = await fetch('/api/voiceover/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productName: canonicalTitle,
+            artisanName: user.displayName || 'Authentic Artisan',
+            craftType: details.category,
+            materials: canonicalMaterials,
+            region: canonicalRegion,
+            story: canonicalStory,
+            description: canonicalDesc,
+            language: activeStep5Lang || 'English',
+          }),
+        });
+        if (voRes.ok) {
+          const voData = await voRes.json();
+          if (voData.audioBase64) {
+            const langKey = activeStep5Lang || 'English';
+            voiceoverPayload[langKey] = {
+              audioBase64: voData.audioBase64,
+              mimeType: voData.mimeType || 'audio/wav',
+              script: voData.script,
+              language: langKey,
+              updatedAt: new Date().toISOString(),
+            };
+            // Cache immediately in local memory & IndexedDB
+            reelAudioEngine.loadDirectVoiceover(voData.audioBase64, voData.script, langKey);
+          }
+        }
+      } catch (voErr) {
+        console.warn('Voiceover pre-generation note during save:', voErr);
+      }
+
       const productData: any = {
         artisanId: user.uid,
         artisanName: user.displayName || 'Authentic Artisan',
@@ -862,6 +899,7 @@ function ProductUploadContent() {
         marketing: details.marketing || null,
         priceRange: details.priceRange,
         translations: translationsCacheRef.current,
+        voiceover: Object.keys(voiceoverPayload).length > 0 ? voiceoverPayload : null,
       };
 
       if (editId) {
@@ -876,6 +914,18 @@ function ProductUploadContent() {
       toast({
         title: status === 'Published' ? "Product Published!" : "Draft Saved!",
         description: status === 'Published' ? "Your craft is now live on the marketplace." : "You can find your draft in the hub."
+      });
+
+      // Pre-warm & persist voiceover into IndexedDB so opening the reel has 0ms delay
+      reelAudioEngine.prefetchVoiceover({
+        productName: canonicalTitle,
+        artisanName: user.displayName || 'Authentic Artisan',
+        craftType: details.category,
+        region: canonicalRegion,
+        materials: canonicalMaterials,
+        price: Number(details.price),
+        story: canonicalStory,
+        language: activeStep5Lang || 'English',
       });
 
       // Ensure full-page Google Translate cookie is reset so UI page stays clean in English
@@ -1648,74 +1698,98 @@ function ProductUploadContent() {
       {/* STEP 6: FINAL PREVIEW & PUBLISH */}
       {/* ========================================================================= */}
       {step === 6 && (
-        <div className="max-w-4xl mx-auto space-y-8 pb-24 animate-in zoom-in-95">
-          <div className="bg-white rounded-[50px] overflow-hidden shadow-xl border-none">
-            <div className="grid grid-cols-1 md:grid-cols-2">
-              <div className="relative aspect-square">
-                {primaryImage && (
+        <div className="max-w-4xl mx-auto space-y-8 pb-24 animate-in zoom-in-95 px-2 sm:px-4">
+          <div className="bg-white rounded-[28px] sm:rounded-[36px] overflow-hidden shadow-xl border border-border/50">
+            <div className="grid grid-cols-1 md:grid-cols-12 min-h-[480px]">
+              {/* Left Column: Product Image */}
+              <div className="md:col-span-5 relative min-h-[300px] sm:min-h-[380px] md:min-h-full bg-stone-900/5 flex items-center justify-center overflow-hidden border-b md:border-b-0 md:border-r border-border/40">
+                {primaryImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={primaryImage} alt="Product Preview" className="w-full h-full object-cover" />
+                  <img src={primaryImage} alt="Product Preview" className="w-full h-full object-cover absolute inset-0" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
+                    <Sparkles className="h-8 w-8 mb-2 opacity-40" />
+                    <p className="text-xs font-semibold">No Image Uploaded</p>
+                  </div>
                 )}
               </div>
-              <div className="p-10 space-y-6">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold">
-                    {details.category}
-                  </Badge>
-                  <Badge variant="outline" className="border-primary/20">
-                    {details.style}
-                  </Badge>
-                  {details.dimensions && (
-                    <Badge variant="secondary" className="bg-secondary text-foreground text-[10px]">
-                      {details.dimensions}
+
+              {/* Right Column: Product Details */}
+              <div className="md:col-span-7 p-5 sm:p-7 md:p-8 flex flex-col justify-between space-y-6">
+                <div className="space-y-5">
+                  {/* Category & Style Badges */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold text-xs px-3 py-1 rounded-full">
+                      {details.category}
                     </Badge>
-                  )}
+                    {details.style && (
+                      <Badge variant="outline" className="border-primary/20 text-xs px-3 py-1 rounded-full">
+                        {details.style}
+                      </Badge>
+                    )}
+                    {details.dimensions && (
+                      <Badge variant="secondary" className="bg-secondary text-foreground text-[11px] px-2.5 py-1 rounded-full">
+                        {details.dimensions}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Title & Price */}
+                  <div className="space-y-2">
+                    <h2 className="text-2xl sm:text-3xl font-headline font-bold text-foreground leading-snug">{details.title}</h2>
+                    {details.titleRegional && (
+                      <p className="text-sm font-serif italic text-primary/90">{details.titleRegional}</p>
+                    )}
+                    <p className="text-2xl sm:text-3xl font-bold text-primary font-sans pt-1">₹{details.price}</p>
+                  </div>
+
+                  {/* Metadata Specs */}
+                  <div className="space-y-3.5 pt-4 border-t border-border/50">
+                    <div>
+                      <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground mb-0.5">Origin</h4>
+                      <p className="text-sm font-semibold text-foreground">{details.region || 'Handcrafted in India'}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground mb-0.5">Materials</h4>
+                      <p className="text-sm text-foreground/90">{details.materials || 'Authentic Craft Materials'}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground mb-0.5">Authentic Story</h4>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed italic bg-secondary/30 p-3.5 rounded-2xl border border-border/30">
+                        {details.story || details.description || 'Verified cultural heritage craft.'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <h2 className="text-3xl font-headline font-bold text-foreground mb-2">{details.title}</h2>
-                  {details.titleRegional && (
-                    <p className="text-sm font-serif italic text-primary">{details.titleRegional}</p>
-                  )}
-                  <p className="text-3xl font-bold text-primary font-sans mt-3">₹{details.price}</p>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t">
-                  <div>
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-1">Origin</h4>
-                    <p className="text-sm font-semibold">{details.region}</p>
+                {/* Footer Buttons: Fully Responsive, No Overflow */}
+                <div className="pt-4 border-t border-border/50 w-full">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full h-11 font-semibold text-xs sm:text-sm px-3"
+                      onClick={() => setStep(5)}
+                    >
+                      <span>Back to Edit</span>
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="w-full rounded-full h-11 font-semibold text-xs sm:text-sm px-3"
+                      onClick={() => handleSave('Draft')}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5 shrink-0" /> : null}
+                      <span className="truncate">Save as Draft</span>
+                    </Button>
+                    <Button
+                      className="w-full rounded-full h-11 shadow-md font-bold text-xs sm:text-sm px-3"
+                      onClick={() => handleSave('Published')}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5 shrink-0" /> : null}
+                      <span className="truncate">Publish to Store</span>
+                    </Button>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-1">Materials</h4>
-                    <p className="text-sm">{details.materials}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-1">Authentic Story</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed italic">{details.story}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-6 w-full">
-                  <Button variant="outline" className="w-full sm:flex-1 rounded-full h-11 sm:h-12 font-semibold text-sm" onClick={() => setStep(5)}>
-                    Back to Edit
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="w-full sm:flex-1 rounded-full h-11 sm:h-12 font-semibold text-sm"
-                    onClick={() => handleSave('Draft')}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    <span>Save as Draft</span>
-                  </Button>
-                  <Button
-                    className="w-full sm:flex-1 rounded-full h-11 sm:h-12 shadow-lg font-bold text-sm"
-                    onClick={() => handleSave('Published')}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    <span>Publish to Store</span>
-                  </Button>
                 </div>
               </div>
             </div>

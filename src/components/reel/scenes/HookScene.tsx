@@ -118,7 +118,7 @@ export const HookScene: React.FC<HookSceneProps> = ({
           <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight flex flex-wrap items-center gap-x-2 gap-y-2">
             {words.map((word, i) => {
               const wordPop = spring({
-                frame: frame - 4 - i * 3,
+                frame: frame - i * 2,
                 fps,
                 config: { damping: 8, mass: 0.5, stiffness: 180 },
               });

@@ -21,6 +21,57 @@ export interface ReelAudioData {
   story?: string;
   hookTitle?: string;
   language?: string;
+  voiceoverAudioBase64?: string;
+  voiceoverScript?: string;
+}
+
+// IndexedDB persistent audio cache helpers for unlimited storage across reloads
+const IDB_NAME = 'virasya_reel_audio_db';
+const IDB_STORE = 'tts_voiceover_cache';
+
+function getIDBDatabase(): Promise<IDBDatabase | null> {
+  if (typeof window === 'undefined' || !window.indexedDB) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      const request = window.indexedDB.open(IDB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function getStoredAudioBase64(key: string): Promise<string | null> {
+  try {
+    const db = await getIDBDatabase();
+    if (!db) return null;
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(key);
+      req.onsuccess = () => resolve((req.result as string) || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function setStoredAudioBase64(key: string, base64Data: string): Promise<void> {
+  try {
+    const db = await getIDBDatabase();
+    if (!db) return;
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    const store = tx.objectStore(IDB_STORE);
+    store.put(base64Data, key);
+  } catch {}
 }
 
 // Helpers to clean raw titles and format material lists into natural human prose
@@ -98,9 +149,11 @@ class ReelAudioEngine {
   private cachedReelData: ReelAudioData | null = null;
   private audioBufferCache: Map<string, AudioBuffer> = new Map();
   private pendingFetches: Map<string, Promise<AudioBuffer | null>> = new Map();
+  private aiScriptCache: Map<string, string> = new Map();
   private duckTimer: NodeJS.Timeout | null = null;
   private speechTimer: NodeJS.Timeout | null = null;
   private currentSpeechSession = 0;
+  public onAudioReady?: () => void;
 
   constructor() {}
 
@@ -218,7 +271,69 @@ class ReelAudioEngine {
   }
 
   /**
-   * Start playing background soundtrack & voiceover narration immediately
+   * Loads and decodes voiceover directly from base64 string stored in DB / document
+   */
+  public async loadDirectVoiceover(audioBase64: string, script?: string, language?: string): Promise<AudioBuffer | null> {
+    if (!audioBase64 || typeof window === 'undefined') return null;
+    const lang = language || this.language || 'English';
+    const voice = this.voiceName || 'Charon';
+    const cacheKey = script ? `${voice}_${lang}_${script}` : `direct_${lang}_${audioBase64.slice(0, 32)}`;
+
+    if (this.audioBufferCache.has(cacheKey)) {
+      return this.audioBufferCache.get(cacheKey)!;
+    }
+
+    try {
+      const binaryString = window.atob(audioBase64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const ctx = this.initAudioContext();
+      if (ctx) {
+        let audioBuffer: AudioBuffer;
+        try {
+          audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+        } catch {
+          audioBuffer = decodeRawPCMToAudioBuffer(ctx, bytes, 22050);
+        }
+        this.audioBufferCache.set(cacheKey, audioBuffer);
+        if (script) {
+          setStoredAudioBase64(cacheKey, audioBase64);
+        }
+        return audioBuffer;
+      }
+    } catch (err) {
+      console.warn('loadDirectVoiceover decoding note:', err);
+    }
+    return null;
+  }
+
+  /**
+   * Pre-fetches, resolves, and decodes the voiceover audio buffer so it is 100% ready before playback starts
+   */
+  public async prepareVoiceover(reelData: ReelAudioData): Promise<AudioBuffer | null> {
+    if (!reelData || !this.enableVoiceover) return null;
+    const lang = reelData.language || this.language || 'English';
+
+    // 1. Direct Base64 from DB
+    if (reelData.voiceoverAudioBase64) {
+      const buffer = await this.loadDirectVoiceover(reelData.voiceoverAudioBase64, reelData.voiceoverScript, lang);
+      if (buffer) return buffer;
+    }
+
+    // 2. Resolve script
+    const script = reelData.voiceoverScript || (await this.resolveNarrationScript(reelData));
+    const voice = this.voiceName || 'Charon';
+
+    // 3. Fetch/decode TTS buffer
+    const buffer = await this.fetchTTSAudioBuffer(script, voice, lang);
+    return buffer;
+  }
+
+  /**
+   * Start playing background soundtrack & voiceover narration in perfect synchronized lockstep
    */
   public async start(reelData?: ReelAudioData) {
     this.stop();
@@ -241,7 +356,7 @@ class ReelAudioEngine {
     this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.volume, ctx.currentTime);
     this.masterGain.connect(ctx.destination);
 
-    // Initial music gain: start at full atmospheric volume from the very first frame
+    // Initial music gain
     this.musicGain = ctx.createGain();
     this.musicGain.gain.setValueAtTime(1.0, ctx.currentTime);
     this.musicGain.connect(this.masterGain);
@@ -250,30 +365,48 @@ class ReelAudioEngine {
     this.voiceoverGain.gain.setValueAtTime(1.30, ctx.currentTime);
     this.voiceoverGain.connect(this.masterGain);
 
-    // 1. START SITAR FOLK SOUNDTRACK IMMEDIATELY AT FRAME 0 (from the very starting)
     const startTime = ctx.currentTime;
+
+    // 1. Check if voiceover buffer is ready
+    let targetBuffer: AudioBuffer | null = null;
+    let targetScript = '';
+
+    if (this.enableVoiceover && this.cachedReelData) {
+      const lang = this.cachedReelData.language || this.language || 'English';
+      const voice = this.voiceName || 'Charon';
+      targetScript = this.cachedReelData.voiceoverScript || (await this.resolveNarrationScript(this.cachedReelData));
+      const cacheKey = `${voice}_${lang}_${targetScript}`;
+
+      if (this.cachedReelData.voiceoverAudioBase64) {
+        targetBuffer = await this.loadDirectVoiceover(
+          this.cachedReelData.voiceoverAudioBase64,
+          this.cachedReelData.voiceoverScript,
+          lang
+        );
+      }
+
+      if (!targetBuffer && this.audioBufferCache.has(cacheKey)) {
+        targetBuffer = this.audioBufferCache.get(cacheKey)!;
+      }
+
+      if (!targetBuffer) {
+        targetBuffer = await this.fetchTTSAudioBuffer(targetScript, voice, lang);
+      }
+    }
+
+    // 2. START SOUNDTRACK & VOICEOVER AT THE EXACT SAME TIMESTAMP
     this.startTrack(this.currentTrackId, startTime);
 
-    // 2. Schedule Voiceover to speak immediately as Story Hook animates (0.3s / Frame 9)
     if (this.enableVoiceover && this.cachedReelData) {
-      const activeSession = ++this.currentSpeechSession;
-      const script = this.buildNarrationScript(this.cachedReelData);
-      const voiceoverStartTime = startTime + 0.133; // 0.133s matches exact Frame 4 when Story Hook text pops on screen
+      if (targetBuffer) {
+        this.playStudioAudioBuffer(targetBuffer, startTime);
+      } else if (targetScript) {
+        this.speakWebSpeechFallback(targetScript, this.language);
+      }
+    }
 
-      this.fetchTTSAudioBuffer(script, this.voiceName, this.language).then((audioBuffer) => {
-        if (this.currentSpeechSession !== activeSession || !this.isRunning || !this.enableVoiceover) return;
-        const now = this.ctx ? this.ctx.currentTime : startTime;
-        if (audioBuffer) {
-          this.playStudioAudioBuffer(audioBuffer, Math.max(now, voiceoverStartTime));
-        } else {
-          const delayMs = Math.max(0, (voiceoverStartTime - now) * 1000);
-          this.speechTimer = setTimeout(() => {
-            if (this.currentSpeechSession === activeSession && this.isRunning && this.enableVoiceover) {
-              this.speakWebSpeechFallback(script, this.language);
-            }
-          }, delayMs);
-        }
-      });
+    if (this.onAudioReady) {
+      this.onAudioReady();
     }
   }
 
@@ -282,8 +415,62 @@ class ReelAudioEngine {
    */
   public async prefetchVoiceover(reelData: ReelAudioData) {
     if (!reelData) return;
-    const script = this.buildNarrationScript(reelData);
+    if (reelData.voiceoverAudioBase64) {
+      await this.loadDirectVoiceover(reelData.voiceoverAudioBase64, reelData.voiceoverScript, reelData.language || this.language);
+      return;
+    }
+    const script = await this.resolveNarrationScript(reelData);
     await this.fetchTTSAudioBuffer(script, this.voiceName, this.language);
+  }
+
+  /**
+   * Resolves the highest fidelity AI-generated or structured documentary script
+   */
+  public async resolveNarrationScript(reelData: ReelAudioData): Promise<string> {
+    const lang = reelData.language || this.language || 'English';
+    const cacheKey = `${lang}_${reelData.productName}_${reelData.craftType || ''}_${reelData.materials || ''}_${reelData.region || ''}_${reelData.hookTitle || ''}`.toLowerCase();
+
+    if (this.aiScriptCache.has(cacheKey)) {
+      return this.aiScriptCache.get(cacheKey)!;
+    }
+
+    // Try AI Script generation endpoint with fast timeout
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const res = await fetch('/api/generate-reel-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: reelData.productName,
+          craftType: reelData.craftType,
+          materials: reelData.materials,
+          region: reelData.region,
+          artisanName: reelData.artisanName,
+          story: reelData.story,
+          language: lang,
+          hookTitle: reelData.hookTitle,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.script && json.script.trim().length > 15) {
+          const aiScript = json.script.trim();
+          this.aiScriptCache.set(cacheKey, aiScript);
+          return aiScript;
+        }
+      }
+    } catch {}
+
+    // Fallback to beautifully polished, zero-repetition rule engine
+    const fallbackScript = this.buildNarrationScript(reelData);
+    this.aiScriptCache.set(cacheKey, fallbackScript);
+    return fallbackScript;
   }
 
   /**
@@ -372,7 +559,7 @@ class ReelAudioEngine {
   }
 
   // =========================================================================
-  // MULTILINGUAL HERITAGE NARRATION BUILDER
+  // MULTILINGUAL HERITAGE NARRATION BUILDER (STRICT ZERO-REPETITION)
   // =========================================================================
 
   public buildNarrationScript(reelData: ReelAudioData): string {
@@ -392,171 +579,161 @@ class ReelAudioEngine {
 
     if (lang === 'Hindi') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}...`);
-      } else if (region) {
-        parts.push(`${region} की जीवंत धरोहर... प्रस्तुत है ${product}।`);
+      if (region) {
+        parts.push(`${region} की समृद्ध परंपरा से, प्रस्तुत है ${product}।`);
+      } else if (hook) {
+        parts.push(`${hook}। प्रस्तुत है ${product}।`);
       } else {
-        parts.push(`प्रस्तुत है भारतीय हस्तशिल्प का यह अनुपम रूप... ${product}।`);
+        parts.push(`प्रस्तुत है ${product}।`);
       }
+
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} से रची गई यह कलाकृति...`);
+        parts.push(`${spokenMaterials} से निर्मित, इसका प्रत्येक पहलू कलात्मक उत्कृष्टता दर्शाता है।`);
       }
-      parts.push(`भारतीय हस्तशिल्प और कलात्मकता का अनुपम प्रतीक।`);
+
+      parts.push(`भारतीय सांस्कृतिक धरोहर और पारंपरिक कला का एक अनुपम प्रतीक।`);
       return parts.join(' ');
     }
 
     if (lang === 'Tamil') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}.`);
-      } else if (region) {
-        parts.push(`${region} பாரம்பரியத்தின் அரிய படைப்பு, ${product}.`);
+      if (region) {
+        parts.push(`${region} பகுதியின் பாரம்பரியத்தில் உருவான ${product}.`);
       } else {
-        parts.push(`பார்ப்போரை மயக்கும் கைவினைப் படைப்பு, ${product}.`);
+        parts.push(`அறிமுகமாகிறது ${product}.`);
       }
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} கொண்டு செதுக்கப்பட்ட அபூர்வக் கலை நுட்பம்.`);
+        parts.push(`${spokenMaterials} கொண்டு உருவாக்கப்பட்ட இந்த படைப்பு சிறந்த நுட்பத்தை வெளிப்படுத்துகிறது.`);
       }
-      parts.push(`பாரம்பரிய கைவினைப் படைப்பின் தலைசிறந்த பொக்கிஷம்.`);
+      parts.push(`பாரம்பரிய கலை நயத்தின் அழகிய அடையாளம்.`);
       return parts.join(' ');
     }
 
     if (lang === 'Bengali') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}।`);
-      } else if (region) {
-        parts.push(`${region}-এর ঐতিহ্যবাহী কারুশিল্প থেকে, নিবেদন ${product}।`);
+      if (region) {
+        parts.push(`${region}-এর ঐতিহ্য থেকে নিবেদন ${product}।`);
       } else {
-        parts.push(`নিবেদন হস্তশিল্পের অনন্য সৃষ্টি, ${product}।`);
+        parts.push(`নিবেদন ${product}।`);
       }
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} দিয়ে তৈরি এই অনুপম শিল্পকর্ম।`);
+        parts.push(`${spokenMaterials} দিয়ে যত্ন সহকারে নির্মিত।`);
       }
-      parts.push(`ঐতিহ্যবাহী কারুশিল্প ও অনন্য নান্দনিকতার সেরা নিদর্শন।`);
+      parts.push(`ভারতীয় শিল্পের এক অনন্য নিদর্শন ও ঐতিহ্যবাহী সৃষ্টি।`);
       return parts.join(' ');
     }
 
     if (lang === 'Marathi') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}।`);
-      } else if (region) {
-        parts.push(`${region} च्या समृद्ध परंपरेतून, सादर आहे ${product}।`);
+      if (region) {
+        parts.push(`${region} च्या समृद्ध परंपरेतून सादर आहे ${product}।`);
       } else {
-        parts.push(`सादर आहे हस्तकलेची अप्रतिम निर्मिती, ${product}।`);
+        parts.push(`सादर आहे ${product}।`);
       }
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} ने घडवलेली ही कलाकृती।`);
+        parts.push(`${spokenMaterials} ने साकारलेली ही कलाकृती अत्यंत देखणी आहे।`);
       }
-      parts.push(`भारतीय हस्तकलेचा आणि समृद्ध परंपरेचा उत्कृष्ट नमुना।`);
+      parts.push(`भारतीय संस्कृती आणि समृद्ध परंपरेचा एक सुंदर वारसा।`);
       return parts.join(' ');
     }
 
     if (lang === 'Gujarati') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}।`);
-      } else if (region) {
-        parts.push(`${region} ની પ્રાચીન વિરાસતમાંથી, પ્રસ્તુત છે ${product}।`);
+      if (region) {
+        parts.push(`${region} ની સમૃદ્ધ વિરાસતમાંથી પ્રસ્તુત છે ${product}।`);
       } else {
-        parts.push(`પ્રસ્તુત છે હસ્તકલાની અનન્ય કૃતિ, ${product}।`);
+        parts.push(`પ્રસ્તુત છે ${product}।`);
       }
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} થી તૈયાર કરેલી અદભુત કારીગરી।`);
+        parts.push(`${spokenMaterials} માંથી તૈયાર કરેલી આ સુંદર કૃતિ છે।`);
       }
-      parts.push(`ભારતીય હસ્તકળા અને પ્રાચીન વારસાની અદભુત રજૂઆત।`);
+      parts.push(`ભારતીય સંસ્કૃતિ અને પ્રાચીન વારસાની અનોખી પહેચાન।`);
       return parts.join(' ');
     }
 
     if (lang === 'Telugu') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}.`);
-      } else if (region) {
-        parts.push(`${region} విశిష్ట కళా సాంప్రదాయం నుండి, ${product}.`);
+      if (region) {
+        parts.push(`${region} కళా సంస్కృతి నుండి, ${product}.`);
       } else {
-        parts.push(`అద్భుతమైన హస్తకళా రూపం, ${product}.`);
+        parts.push(`ప్రత్యేకంగా మీ కోసం, ${product}.`);
       }
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} తో తీర్చిదిద్దిన మనోహర శిల్పం.`);
+        parts.push(`${spokenMaterials} తో నైపుణ್ಯంగా తీర్చిదిద్దబడింది.`);
       }
-      parts.push(`భారతీయ హస్తకళా వైభవానికి అమూల్యమైన ప్రతీక.`);
+      parts.push(`భారతీయ సాంప్రదాయ కళా నైపుణ్యానికి ఒక విశిష్ట ప్రతీక.`);
       return parts.join(' ');
     }
 
     if (lang === 'Kannada') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}.`);
-      } else if (region) {
-        parts.push(`${region} ರ ಪರಂಪರೆಯ ವಿಶೇಷ ಹಸ್ತಕೃತಿ, ${product}.`);
+      if (region) {
+        parts.push(`${region} ರ ಕಲಾ ಪರಂಪರೆಯಿಂದ, ${product}.`);
       } else {
-        parts.push(`ವಿಶಿಷ್ಟ ಹಸ್ತಕಲೆಯ ನಿರ್ಮಿತಿ, ${product}.`);
+        parts.push(`ಪರಿಚಯಿಸುತ್ತಿದ್ದೇವೆ ${product}.`);
       }
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} ನಿಂದ ತಯಾರಿಸಿದ ಸುಂದರ ಕಲಾಕೃತಿ.`);
+        parts.push(`${spokenMaterials} ಬಳಸಿ ಸೊಗಸಾಗಿ ತಯಾರಿಸಲಾಗಿದೆ.`);
       }
-      parts.push(`ಭಾರತೀಯ ಹಸ್ತಕಲೆಯ ಭವ್ಯ ಸಾಂಸ್ಕೃತಿಕ ಕಲಾಕೃತಿ.`);
+      parts.push(`ಭಾರತೀಯ ಕಲಾ ವೈಭವ ಮತ್ತು ಸಾಂಸ್ಕೃತಿಕ ಪರಂಪರೆಯ ಸುಂದರ ಕೃತಿ.`);
       return parts.join(' ');
     }
 
     if (lang === 'Malayalam') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}.`);
-      } else if (region) {
-        parts.push(`${region} ൻ്റെ പാരമ്പര്യ നിർമ്മിതി, ${product}.`);
+      if (region) {
+        parts.push(`${region} ൻ്റെ പാരമ്പര്യത്തിൽ നിന്ന്, ${product}.`);
       } else {
-        parts.push(`മനോഹരമായ കരകൗശല സൃഷ്ടി, ${product}.`);
+        parts.push(`പരിചയപ്പെടുത്തുന്നു ${product}.`);
       }
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} ഉപയോഗിച്ച് തീർത്ത അപൂർവ നിർമ്മിതി.`);
+        parts.push(`${spokenMaterials} ഉപയോഗിച്ച് സൂಕ್ಷ്മമായി നിർമ്മിച്ചത്.`);
       }
-      parts.push(`ഭാരതീയ കരകൗശല ഭംഗിയുടെ അപൂർവ നിർമ്മിതി.`);
+      parts.push(`ഭാരതീയ സംസ്കാരത്തിന്റെയും പാരമ്പര്യ കലയുടെയും അമൂല്യമായ അടയാളം.`);
       return parts.join(' ');
     }
 
     if (lang === 'Punjabi') {
       const parts: string[] = [];
-      if (hook) {
-        parts.push(`${hook}।`);
-      } else if (region) {
-        parts.push(`${region} ਦੀ ਵਿਰਾਸਤੀ ਪਰੰਪਰਾ ਤੋਂ, ਪੇਸ਼ ਹੈ ${product}।`);
+      if (region) {
+        parts.push(`${region} ਦੀ ਵਿਰਾਸਤੀ ਪਰੰਪਰਾ ਤੋਂ ਪੇਸ਼ ਹੈ ${product}।`);
       } else {
-        parts.push(`ਪੇਸ਼ ਹੈ ਹੱਥ-ਕਲਾ ਦੀ ਅਨੋਖੀ ਮਿਸਾਲ, ${product}।`);
+        parts.push(`ਪੇਸ਼ ਹੈ ${product}।`);
       }
       if (spokenMaterials) {
-        parts.push(`${spokenMaterials} ਨਾਲ ਤਿਆਰ ਕੀਤੀ ਅਨੋਖੀ ਕਲਾਕ੍ਰਿਤੀ।`);
+        parts.push(`${spokenMaterials} ਨਾਲ ਖੂਬਸੂਰਤੀ ਨਾਲ ਤਿਆਰ ਕੀਤਾ ਗਿਆ।`);
       }
-      parts.push(`ਭਾਰਤੀ ਦਸਤਕਾਰੀ ਅਤੇ ਸ਼ਾਨਦਾਰ ਵਿਰਾਸਤ ਦੀ ਮਿਸਾਲ।`);
+      parts.push(`ਸਾਡੀ ਅਮੀਰ ਵਿਰਾਸਤ ਅਤੇ ਕਲਾਕਾਰੀ ਦੀ ਇੱਕ ਸ਼ਾਨਦਾਰ ਮਿਸਾਲ।`);
       return parts.join(' ');
     }
 
-    // Soothing, Dopamine-Friendly English Craft Documentary
-    const fullText = `${product} ${reelData.craftType || ''} ${spokenMaterials}`.toLowerCase();
-    const isTextile = /saree|sari|silk|shawl|weave|woven|fabric|textile|dupatta|scarf|stole/i.test(fullText);
-    const isMetal = /metal|brass|bronze|copper|iron|dhokra|silver|alloy|bell metal/i.test(fullText);
+    // Natural, Non-Repetitive English Documentary Narration
+    const fullText = `${product} ${reelData.craftType || ''} ${spokenMaterials} ${reelData.story || ''}`.toLowerCase();
+    const isTextile = /saree|sari|silk|shawl|weave|woven|fabric|textile|dupatta|scarf|stole|embroidery|chikankari|cotton|pashmina/i.test(fullText);
+    const isMetal = /metal|brass|bronze|copper|iron|dhokra|dokra|silver|alloy|bell metal/i.test(fullText);
     const isPottery = /pottery|clay|ceramic|terracotta|blue pottery/i.test(fullText);
-    const isWood = /wood|carv|sandalwood|teak/i.test(fullText);
+    const isWood = /wood|carv|sandalwood|teak|sheesham/i.test(fullText);
 
-    const craftVerb = isTextile ? 'Handwoven' : isMetal ? 'Hand-cast' : isPottery ? 'Hand-molded' : isWood ? 'Hand-carved' : 'Handcrafted';
+    const craftVerb = isTextile ? 'Woven' : isMetal ? 'Cast' : isPottery ? 'Molded' : isWood ? 'Carved' : 'Formed';
 
     const parts: string[] = [];
-    if (hook) {
-      parts.push(`${hook}...`);
-    } else if (region) {
-      parts.push(`Born in the craft traditions of ${region}... behold the ${product}.`);
+    
+    // Sentence 1: Clean, confident introduction
+    if (region) {
+      parts.push(`From the rich artisan traditions of ${region}, this is the ${product}.`);
     } else {
-      parts.push(`Behold this ${craftVerb.toLowerCase()} masterpiece... the ${product}.`);
+      parts.push(`Presenting the ${product}.`);
     }
 
+    // Sentence 2: Specific materials & craft technique (No repeating 'handcrafted')
     if (spokenMaterials) {
-      parts.push(`${craftVerb} from ${spokenMaterials}...`);
+      parts.push(`${craftVerb} from ${spokenMaterials}, every line captures meticulous human devotion.`);
+    } else if (reelData.craftType) {
+      parts.push(`Rooted in the timeless technique of ${reelData.craftType}.`);
     }
 
-    parts.push(`A timeless masterpiece of authentic Indian craft.`);
+    // Sentence 3: Poetic cultural tribute (No awkward username mentions)
+    parts.push(`A timeless celebration of enduring Indian artistic culture.`);
 
     return parts.join(' ');
   }
@@ -573,28 +750,28 @@ class ReelAudioEngine {
       return this.audioBufferCache.get(cacheKey)!;
     }
 
-    // Persistent LocalStorage cache hit -> decode and return instantly
+    // Persistent IndexedDB / LocalStorage cache hit -> decode and return instantly
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const storedBase64 = localStorage.getItem(`tts_cache_${cacheKey}`);
-        if (storedBase64) {
-          const binaryString = window.atob(storedBase64);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+      const storedBase64 = (await getStoredAudioBase64(cacheKey)) ||
+        (typeof window !== 'undefined' && window.localStorage ? localStorage.getItem(`tts_cache_${cacheKey}`) : null);
+
+      if (storedBase64) {
+        const binaryString = window.atob(storedBase64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const ctx = this.initAudioContext();
+        if (ctx) {
+          let audioBuffer: AudioBuffer;
+          try {
+            audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+          } catch {
+            audioBuffer = decodeRawPCMToAudioBuffer(ctx, bytes, 24000);
           }
-          const ctx = this.initAudioContext();
-          if (ctx) {
-            let audioBuffer: AudioBuffer;
-            try {
-              audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
-            } catch {
-              audioBuffer = decodeRawPCMToAudioBuffer(ctx, bytes, 24000);
-            }
-            this.audioBufferCache.set(cacheKey, audioBuffer);
-            return audioBuffer;
-          }
+          this.audioBufferCache.set(cacheKey, audioBuffer);
+          return audioBuffer;
         }
       }
     } catch {}
@@ -624,8 +801,9 @@ class ReelAudioEngine {
         const data = await response.json();
         if (!data.audioBase64) return null;
 
-        // Save to LocalStorage for zero-cost repeat playback across reloads
+        // Save to IndexedDB and LocalStorage for unlimited persistent cache across reloads
         try {
+          await setStoredAudioBase64(cacheKey, data.audioBase64);
           if (typeof window !== 'undefined' && window.localStorage) {
             localStorage.setItem(`tts_cache_${cacheKey}`, data.audioBase64);
           }
@@ -725,16 +903,14 @@ class ReelAudioEngine {
       return;
     }
 
-    const voiceoverStartTime = this.ctx.currentTime + 0.133; // 0.133s matches exact Frame 4 when Story Hook text pops on screen
     if (audioBuffer) {
-      this.playStudioAudioBuffer(audioBuffer, Math.max(this.ctx.currentTime, voiceoverStartTime));
+      this.playStudioAudioBuffer(audioBuffer, this.ctx.currentTime);
     } else {
-      const delayMs = Math.max(0, (voiceoverStartTime - this.ctx.currentTime) * 1000);
-      this.speechTimer = setTimeout(() => {
-        if (this.currentSpeechSession === session && this.isRunning && this.enableVoiceover) {
-          this.speakWebSpeechFallback(script, this.language);
-        }
-      }, delayMs);
+      this.speakWebSpeechFallback(script, this.language);
+    }
+
+    if (this.onAudioReady) {
+      this.onAudioReady();
     }
   }
 

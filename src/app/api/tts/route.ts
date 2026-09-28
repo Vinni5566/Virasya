@@ -4,12 +4,29 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Persistent memory cache for TTS audio
-const ttsMemoryCache = new Map<string, { audioBase64: string; mimeType: string }>();
+const ttsMemoryCache = new Map<string, { audioBase64: string; mimeType: string; provider?: string }>();
 
 const CACHE_DIR = path.join(process.cwd(), ".tts-cache");
+
+const SARVAM_LANG_MAP: Record<string, { code: string; defaultSpeaker: string }> = {
+  English: { code: "en-IN", defaultSpeaker: "arvind" },
+  Hindi: { code: "hi-IN", defaultSpeaker: "arvind" },
+  Tamil: { code: "ta-IN", defaultSpeaker: "arvind" },
+  Telugu: { code: "te-IN", defaultSpeaker: "arvind" },
+  Bengali: { code: "bn-IN", defaultSpeaker: "arvind" },
+  Marathi: { code: "mr-IN", defaultSpeaker: "arvind" },
+  Gujarati: { code: "gu-IN", defaultSpeaker: "arvind" },
+  Kannada: { code: "kn-IN", defaultSpeaker: "arvind" },
+  Malayalam: { code: "ml-IN", defaultSpeaker: "arvind" },
+  Punjabi: { code: "pa-IN", defaultSpeaker: "arvind" },
+  Odia: { code: "od-IN", defaultSpeaker: "arvind" },
+};
 
 function getCacheKey(text: string, voice: string, lang: string): string {
   const clean = text.trim().toLowerCase();
@@ -18,7 +35,7 @@ function getCacheKey(text: string, voice: string, lang: string): string {
   return `${prefix}_${hash}`;
 }
 
-function readDiskCache(key: string): { audioBase64: string; mimeType: string } | null {
+function readDiskCache(key: string): { audioBase64: string; mimeType: string; provider?: string } | null {
   try {
     if (ttsMemoryCache.has(key)) return ttsMemoryCache.get(key)!;
     const filePath = path.join(CACHE_DIR, `${key}.json`);
@@ -31,7 +48,7 @@ function readDiskCache(key: string): { audioBase64: string; mimeType: string } |
   return null;
 }
 
-function writeDiskCache(key: string, data: { audioBase64: string; mimeType: string }) {
+function writeDiskCache(key: string, data: { audioBase64: string; mimeType: string; provider?: string }) {
   try {
     ttsMemoryCache.set(key, data);
     if (!fs.existsSync(CACHE_DIR)) {
@@ -53,7 +70,7 @@ function sanitizeSpeechText(rawText: string): string {
     .trim();
 
   // Add natural SSML-like punctuation for pauses and human rhythm
-  if (!/[.!?]$/.test(cleaned)) {
+  if (!/[.!?।]$/.test(cleaned)) {
     cleaned += ".";
   }
 
@@ -108,18 +125,70 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         ...cached,
         cached: true,
-        modelUsed: "cache",
+        modelUsed: cached.provider ? `${cached.provider}-cache` : "cache",
       });
     }
 
+    // 1. PRIMARY ENGINE: Sarvam AI Text-to-Speech
+    const sarvamApiKey =
+      process.env.SARVAM_API_KEY ||
+      process.env.SARVAM_AI_API_KEY ||
+      process.env.SARVAM_KEY;
+
+    if (sarvamApiKey && sarvamApiKey.trim().length > 0) {
+      try {
+        const langConfig = SARVAM_LANG_MAP[language] || SARVAM_LANG_MAP["English"];
+        const sarvamRes = await fetch("https://api.sarvam.ai/text-to-speech", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "api-subscription-key": sarvamApiKey.trim(),
+          },
+          body: JSON.stringify({
+            inputs: [cleanText],
+            target_language_code: langConfig.code,
+            speaker: langConfig.defaultSpeaker,
+            pitch: 0,
+            pace: 0.88,
+            loudness: 1.5,
+            speech_sample_rate: 22050,
+            enable_preprocessing: true,
+            model: "bulbul:v1",
+          }),
+        });
+
+        if (sarvamRes.ok) {
+          const sarvamData = await sarvamRes.json();
+          const base64Audio = sarvamData?.audios?.[0];
+          if (base64Audio) {
+            const responseData = {
+              audioBase64: base64Audio,
+              mimeType: "audio/wav",
+              provider: "sarvam",
+            };
+            writeDiskCache(cacheKey, responseData);
+            return NextResponse.json({
+              ...responseData,
+              modelUsed: "sarvam-bulbul-v1",
+            });
+          }
+        } else {
+          const errText = await sarvamRes.text();
+          console.warn("Sarvam AI TTS error response:", sarvamRes.status, errText);
+        }
+      } catch (sarvamErr: any) {
+        console.warn("Sarvam AI TTS invocation failed:", sarvamErr?.message || sarvamErr);
+      }
+    }
+
+    // 2. BACKUP ENGINE: Gemini Studio Voiceovers
     const defaultStyle =
       language === "Hindi"
-        ? "डिस्कवरी चैनल और नेशनल ज्योग्राफिक जैसा आत्मीय, गहरा, शांत और सौम्य भारतीय वृत्तचित्र पुरुष वाचक। स्वाभाविक मानवीय सांस, सहज विराम, गरिमामयी ठहराव और मखमली स्वर। किसी भी प्रकार की कृत्रिम या रोबोटिक ध्वनि नहीं।"
-        : "Deep, calm, warm, and captivating Discovery Channel male documentary narrator. Speaks in a calm, relaxed, intimate cadence with natural human warmth, gentle pauses, and rich resonant depth. Unhurried, poetic, and soothing. Never robotic, brisk, or synthetic.";
+        ? "डिस्कवरी चैनल और नेशनल ज्योग्राफिक जैसा आत्मीय, गहरा, शांत और सौम्य भारतीय वृत्तचित्र पुरुष वाचक। स्वाभाविक मानवीय सांस, सहज विराम, गरिमामयी ठहराव और मखमली स्वर।"
+        : "Deep, calm, warm, and captivating Discovery Channel male documentary narrator. Speaks in a calm, relaxed, intimate cadence with natural human warmth, gentle pauses, and rich resonant depth. Unhurried, poetic, and soothing.";
 
     const narrationStyle = style || defaultStyle;
 
-    // Prioritize working Gemini audio models per @google/genai guidelines
     const ttsModels = [
       "gemini-2.5-flash-preview-tts",
       "gemini-3.8-flash-lite-tts",
@@ -168,7 +237,6 @@ export async function POST(req: NextRequest) {
           let finalBase64 = rawBase64;
           let finalMime = "audio/wav";
 
-          // If the model output is raw PCM (e.g. audio/L16 or audio/pcm), wrap in standard WAV container
           if (!mime.includes("wav")) {
             const pcmBuffer = Buffer.from(rawBase64, "base64");
             const wavBuffer = addWavHeader(pcmBuffer, 24000, 1, 16);
@@ -180,9 +248,9 @@ export async function POST(req: NextRequest) {
           const responseData = {
             audioBase64: finalBase64,
             mimeType: finalMime,
+            provider: "gemini",
           };
 
-          // Save to memory & disk cache
           writeDiskCache(cacheKey, responseData);
 
           return NextResponse.json({
