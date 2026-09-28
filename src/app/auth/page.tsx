@@ -324,7 +324,7 @@ function AuthContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col paper-texture items-center justify-center p-4 py-12">
+    <div className="min-h-screen flex flex-col paper-texture items-center justify-center p-4 py-12" suppressHydrationWarning>
       {/* Brand Header */}
       <div className="max-w-md w-full text-center mb-6">
         <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
@@ -336,7 +336,7 @@ function AuthContent() {
       </div>
 
       {/* Main Container Card */}
-      <Card className="max-w-md w-full border-border/60 shadow-xl rounded-[32px] bg-white overflow-hidden p-6 sm:p-8">
+      <Card className="max-w-md w-full border-border/60 shadow-xl rounded-[32px] bg-white overflow-hidden p-6 sm:p-8" suppressHydrationWarning>
         
         {/* VIEW 1: FORGOT PASSWORD */}
         {mode === 'forgot-password' && (

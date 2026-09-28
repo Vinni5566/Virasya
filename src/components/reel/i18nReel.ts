@@ -630,25 +630,26 @@ export function generateLocalizedReelHooks(params: {
   }
 
   // Default English
+  const prod = params.productName || 'Heritage Craft';
   return [
     {
       id: 'heritage-secret',
-      title: `The 100-Year ${isTextile ? 'Weaving' : 'Craft'} Heritage of ${region}`,
+      title: `The Heritage of ${prod} • ${region}`,
       subtext: `${actionVerb} with pure devotion by ${maker}`,
     },
     {
       id: 'slow-craft',
       title: `40+ Hours of ${processTerm}`,
-      subtext: `100% authentic ${craft} with zero machine shortcuts`,
+      subtext: `100% authentic ${prod} with zero machine shortcuts`,
     },
     {
       id: 'direct-maker',
-      title: `Direct from Master Artisan ${maker}`,
+      title: `Handcrafted ${prod} by ${maker}`,
       subtext: `Empowering real artisans through verified fair trade`,
     },
     {
       id: 'rare-find',
-      title: `A Rare Living Heritage Masterpiece`,
+      title: `A Rare Handcrafted ${prod}`,
       subtext: `${actionVerb} from genuine ${mat}`,
     },
   ];

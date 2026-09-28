@@ -100,6 +100,7 @@ class ReelAudioEngine {
   private pendingFetches: Map<string, Promise<AudioBuffer | null>> = new Map();
   private duckTimer: NodeJS.Timeout | null = null;
   private speechTimer: NodeJS.Timeout | null = null;
+  private currentSpeechSession = 0;
 
   constructor() {}
 
@@ -253,20 +254,21 @@ class ReelAudioEngine {
     const startTime = ctx.currentTime;
     this.startTrack(this.currentTrackId, startTime);
 
-    // 2. Schedule Voiceover to speak at exactly 2.2s (Frame 66)
+    // 2. Schedule Voiceover to speak immediately as Story Hook animates (0.3s / Frame 9)
     if (this.enableVoiceover && this.cachedReelData) {
+      const activeSession = ++this.currentSpeechSession;
       const script = this.buildNarrationScript(this.cachedReelData);
-      const voiceoverStartTime = startTime + 2.2; // 2.2s intro buffer matches Frame 66
+      const voiceoverStartTime = startTime + 0.133; // 0.133s matches exact Frame 4 when Story Hook text pops on screen
 
       this.fetchTTSAudioBuffer(script, this.voiceName, this.language).then((audioBuffer) => {
-        if (!this.isRunning || !this.enableVoiceover) return;
+        if (this.currentSpeechSession !== activeSession || !this.isRunning || !this.enableVoiceover) return;
         const now = this.ctx ? this.ctx.currentTime : startTime;
         if (audioBuffer) {
           this.playStudioAudioBuffer(audioBuffer, Math.max(now, voiceoverStartTime));
         } else {
           const delayMs = Math.max(0, (voiceoverStartTime - now) * 1000);
           this.speechTimer = setTimeout(() => {
-            if (this.isRunning && this.enableVoiceover) {
+            if (this.currentSpeechSession === activeSession && this.isRunning && this.enableVoiceover) {
               this.speakWebSpeechFallback(script, this.language);
             }
           }, delayMs);
@@ -345,6 +347,7 @@ class ReelAudioEngine {
   }
 
   private stopSpeech() {
+    this.currentSpeechSession++;
     if (this.duckTimer) {
       clearTimeout(this.duckTimer);
       this.duckTimer = null;
@@ -391,8 +394,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}...`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region} की जीवंत धरोहर... प्रस्तुत है ${product}।`);
       } else {
         parts.push(`प्रस्तुत है भारतीय हस्तशिल्प का यह अनुपम रूप... ${product}।`);
@@ -400,9 +402,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} से रची गई यह कलाकृति...`);
       }
-      if (hasArtisan) {
-        parts.push(`मास्टर कारीगर ${artisan} की अमर साधना।`);
-      }
+      parts.push(`भारतीय हस्तशिल्प और कलात्मकता का अनुपम प्रतीक।`);
       return parts.join(' ');
     }
 
@@ -410,8 +410,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}.`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region} பாரம்பரியத்தின் அரிய படைப்பு, ${product}.`);
       } else {
         parts.push(`பார்ப்போரை மயக்கும் கைவினைப் படைப்பு, ${product}.`);
@@ -419,9 +418,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} கொண்டு செதுக்கப்பட்ட அபூர்வக் கலை நுட்பம்.`);
       }
-      if (hasArtisan) {
-        parts.push(`கைவினைஞர் ${artisan} அவர்களின் தலைசிறந்த கலைப் பாரம்பரியம்.`);
-      }
+      parts.push(`பாரம்பரிய கைவினைப் படைப்பின் தலைசிறந்த பொக்கிஷம்.`);
       return parts.join(' ');
     }
 
@@ -429,8 +426,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}।`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region}-এর ঐতিহ্যবাহী কারুশিল্প থেকে, নিবেদন ${product}।`);
       } else {
         parts.push(`নিবেদন হস্তশিল্পের অনন্য সৃষ্টি, ${product}।`);
@@ -438,9 +434,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} দিয়ে তৈরি এই অনুপম শিল্পকর্ম।`);
       }
-      if (hasArtisan) {
-        parts.push(`শিল্পী ${artisan}-এর বংশানুক্রমিক সাধনা ও কারুকাজ।`);
-      }
+      parts.push(`ঐতিহ্যবাহী কারুশিল্প ও অনন্য নান্দনিকতার সেরা নিদর্শন।`);
       return parts.join(' ');
     }
 
@@ -448,8 +442,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}।`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region} च्या समृद्ध परंपरेतून, सादर आहे ${product}।`);
       } else {
         parts.push(`सादर आहे हस्तकलेची अप्रतिम निर्मिती, ${product}।`);
@@ -457,9 +450,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} ने घडवलेली ही कलाकृती।`);
       }
-      if (hasArtisan) {
-        parts.push(`कारागीर ${artisan} यांचा समृद्ध हस्तकला वारसा।`);
-      }
+      parts.push(`भारतीय हस्तकलेचा आणि समृद्ध परंपरेचा उत्कृष्ट नमुना।`);
       return parts.join(' ');
     }
 
@@ -467,8 +458,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}।`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region} ની પ્રાચીન વિરાસતમાંથી, પ્રસ્તુત છે ${product}।`);
       } else {
         parts.push(`પ્રસ્તુત છે હસ્તકલાની અનન્ય કૃતિ, ${product}।`);
@@ -476,9 +466,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} થી તૈયાર કરેલી અદભુત કારીગરી।`);
       }
-      if (hasArtisan) {
-        parts.push(`કારીગર ${artisan} નું વારસાગત મૌલિક કૌશલ્ય।`);
-      }
+      parts.push(`ભારતીય હસ્તકળા અને પ્રાચીન વારસાની અદભુત રજૂઆત।`);
       return parts.join(' ');
     }
 
@@ -486,8 +474,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}.`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region} విశిష్ట కళా సాంప్రదాయం నుండి, ${product}.`);
       } else {
         parts.push(`అద్భుతమైన హస్తకళా రూపం, ${product}.`);
@@ -495,9 +482,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} తో తీర్చిదిద్దిన మనోహర శిల్పం.`);
       }
-      if (hasArtisan) {
-        parts.push(`కళాకారుడు ${artisan} పరంపరాగత నైపుణ్యానికి సాక్ష్యం.`);
-      }
+      parts.push(`భారతీయ హస్తకళా వైభవానికి అమూల్యమైన ప్రతీక.`);
       return parts.join(' ');
     }
 
@@ -505,8 +490,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}.`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region} ರ ಪರಂಪರೆಯ ವಿಶೇಷ ಹಸ್ತಕೃತಿ, ${product}.`);
       } else {
         parts.push(`ವಿಶಿಷ್ಟ ಹಸ್ತಕಲೆಯ ನಿರ್ಮಿತಿ, ${product}.`);
@@ -514,9 +498,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} ನಿಂದ ತಯಾರಿಸಿದ ಸುಂದರ ಕಲಾಕೃತಿ.`);
       }
-      if (hasArtisan) {
-        parts.push(`ಕುಶಲಕರ್ಮಿ ${artisan} ರ ಸಾಂಪ್ರದಾಯಿಕ ಕಲಾ ಸಿದ್ಧಿ.`);
-      }
+      parts.push(`ಭಾರತೀಯ ಹಸ್ತಕಲೆಯ ಭವ್ಯ ಸಾಂಸ್ಕೃತಿಕ ಕಲಾಕೃತಿ.`);
       return parts.join(' ');
     }
 
@@ -524,8 +506,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}.`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region} ൻ്റെ പാരമ്പര്യ നിർമ്മിതി, ${product}.`);
       } else {
         parts.push(`മനോഹരമായ കരകൗശല സൃഷ്ടി, ${product}.`);
@@ -533,9 +514,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} ഉപയോഗിച്ച് തീർത്ത അപൂർവ നിർമ്മിതി.`);
       }
-      if (hasArtisan) {
-        parts.push(`കരകൗശല വിദഗ്ദ്ധൻ ${artisan} ൻ്റെ പാരമ്പര്യ സിദ്ധി.`);
-      }
+      parts.push(`ഭാരതീയ കരകൗശല ഭംഗിയുടെ അപൂർവ നിർമ്മിതി.`);
       return parts.join(' ');
     }
 
@@ -543,8 +522,7 @@ class ReelAudioEngine {
       const parts: string[] = [];
       if (hook) {
         parts.push(`${hook}।`);
-      }
-      if (region) {
+      } else if (region) {
         parts.push(`${region} ਦੀ ਵਿਰਾਸਤੀ ਪਰੰਪਰਾ ਤੋਂ, ਪੇਸ਼ ਹੈ ${product}।`);
       } else {
         parts.push(`ਪੇਸ਼ ਹੈ ਹੱਥ-ਕਲਾ ਦੀ ਅਨੋਖੀ ਮਿਸਾਲ, ${product}।`);
@@ -552,9 +530,7 @@ class ReelAudioEngine {
       if (spokenMaterials) {
         parts.push(`${spokenMaterials} ਨਾਲ ਤਿਆਰ ਕੀਤੀ ਅਨੋਖੀ ਕਲਾਕ੍ਰਿਤੀ।`);
       }
-      if (hasArtisan) {
-        parts.push(`ਕਾਰੀਗਰ ${artisan} ਦੀ ਪੀੜ੍ਹੀ-ਦਰ-ਪੀੜ੍ਹੀ ਮਹਾਰਤ।`);
-      }
+      parts.push(`ਭਾਰਤੀ ਦਸਤਕਾਰੀ ਅਤੇ ਸ਼ਾਨਦਾਰ ਵਿਰਾਸਤ ਦੀ ਮਿਸਾਲ।`);
       return parts.join(' ');
     }
 
@@ -570,8 +546,7 @@ class ReelAudioEngine {
     const parts: string[] = [];
     if (hook) {
       parts.push(`${hook}...`);
-    }
-    if (region) {
+    } else if (region) {
       parts.push(`Born in the craft traditions of ${region}... behold the ${product}.`);
     } else {
       parts.push(`Behold this ${craftVerb.toLowerCase()} masterpiece... the ${product}.`);
@@ -581,11 +556,7 @@ class ReelAudioEngine {
       parts.push(`${craftVerb} from ${spokenMaterials}...`);
     }
 
-    if (hasArtisan) {
-      parts.push(`A living tribute to master artisan ${artisan}.`);
-    } else {
-      parts.push(`Celebrating centuries of Indian craft heritage.`);
-    }
+    parts.push(`A timeless masterpiece of authentic Indian craft.`);
 
     return parts.join(' ');
   }
@@ -736,34 +707,34 @@ class ReelAudioEngine {
     return {
       scene1: hook ? `${hook}...` : 'Discover pure Indian craft heritage...',
       scene2: region ? `Born in the craft traditions of ${region}... behold the ${product}.` : `Behold this handcrafted masterpiece... the ${product}.`,
-      scene3: spokenMaterials ? `Sculpted from ${spokenMaterials}...` : (hasArtisan ? `A living tribute to master artisan ${artisan}.` : 'Celebrating centuries of living craft heritage.'),
+      scene3: spokenMaterials ? `Sculpted from ${spokenMaterials}...` : 'A timeless masterpiece of authentic Indian craft.',
       scene4: price ? `Special price ₹${price}... tap link to order now.` : 'Available now on Virasya Heritage.',
     };
-  }
-
-  public prefetchVoiceover(reelData: ReelAudioData) {
-    if (!reelData) return;
-    const script = this.buildNarrationScript(reelData);
-    this.fetchTTSAudioBuffer(script, this.voiceName, reelData.language || this.language);
   }
 
   private async scheduleNarrations(reelData: ReelAudioData) {
     if (!this.isRunning || !this.enableVoiceover || !this.ctx) return;
 
     this.stopSpeech();
+    const session = this.currentSpeechSession;
 
     const script = this.buildNarrationScript(reelData);
     const audioBuffer = await this.fetchTTSAudioBuffer(script, this.voiceName, this.language);
 
-    if (audioBuffer && this.isRunning && this.enableVoiceover) {
-      const voiceoverStartTime = this.ctx.currentTime + 2.2;
-      this.playStudioAudioBuffer(audioBuffer, voiceoverStartTime);
-    } else if (this.isRunning && this.enableVoiceover) {
+    if (this.currentSpeechSession !== session || !this.isRunning || !this.enableVoiceover || !this.ctx) {
+      return;
+    }
+
+    const voiceoverStartTime = this.ctx.currentTime + 0.133; // 0.133s matches exact Frame 4 when Story Hook text pops on screen
+    if (audioBuffer) {
+      this.playStudioAudioBuffer(audioBuffer, Math.max(this.ctx.currentTime, voiceoverStartTime));
+    } else {
+      const delayMs = Math.max(0, (voiceoverStartTime - this.ctx.currentTime) * 1000);
       this.speechTimer = setTimeout(() => {
-        if (this.isRunning && this.enableVoiceover) {
+        if (this.currentSpeechSession === session && this.isRunning && this.enableVoiceover) {
           this.speakWebSpeechFallback(script, this.language);
         }
-      }, 2200);
+      }, delayMs);
     }
   }
 

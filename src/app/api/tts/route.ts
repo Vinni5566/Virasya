@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -11,8 +12,10 @@ const ttsMemoryCache = new Map<string, { audioBase64: string; mimeType: string }
 const CACHE_DIR = path.join(process.cwd(), ".tts-cache");
 
 function getCacheKey(text: string, voice: string, lang: string): string {
-  const raw = `${lang}_${voice}_${text.trim().toLowerCase().slice(0, 100)}`;
-  return raw.replace(/[^a-z0-9_-]/gi, "_").slice(0, 80);
+  const clean = text.trim().toLowerCase();
+  const hash = crypto.createHash("md5").update(`${lang}_${voice}_${clean}`).digest("hex").slice(0, 16);
+  const prefix = `${lang}_${voice}_${clean.slice(0, 25)}`.replace(/[^a-z0-9_-]/gi, "_");
+  return `${prefix}_${hash}`;
 }
 
 function readDiskCache(key: string): { audioBase64: string; mimeType: string } | null {

@@ -335,6 +335,19 @@ export function ProductReelModal({
   // Manage Audio Engine Lifecycle & Hook Changes when modal opens or selected hook updates
   useEffect(() => {
     if (isOpen) {
+      if (enableVoiceover && currentHook) {
+        reelAudioEngine.prefetchVoiceover({
+          productName: resolvedProductName,
+          artisanName: artisanName || product.artisanName || i18n.masterCraftsman,
+          craftType: resolvedCraftType,
+          region: resolvedRegion,
+          materials: resolvedMaterials,
+          price: product.price,
+          story: resolvedStory || resolvedDescription,
+          hookTitle: currentHook.title,
+          language: savedLang,
+        });
+      }
       reelAudioEngine.unlock();
       triggerAudioPlayback();
       return () => {
@@ -343,24 +356,25 @@ export function ProductReelModal({
     } else {
       reelAudioEngine.stop();
     }
-  }, [isOpen, selectedHookIndex, selectedAudioId, enableVoiceover, savedLang, triggerAudioPlayback]);
-
-  // Prefetch voiceover for the currently active hook only to stay well within API rate limits
-  useEffect(() => {
-    if (isOpen && enableVoiceover && currentHook) {
-      reelAudioEngine.prefetchVoiceover({
-        productName: resolvedProductName,
-        artisanName: artisanName || product.artisanName || i18n.masterCraftsman,
-        craftType: resolvedCraftType,
-        region: resolvedRegion,
-        materials: resolvedMaterials,
-        price: product.price,
-        story: resolvedStory || resolvedDescription,
-        hookTitle: currentHook.title,
-        language: savedLang,
-      });
-    }
-  }, [isOpen, enableVoiceover, currentHook, resolvedProductName, artisanName, product.artisanName, i18n.masterCraftsman, resolvedCraftType, resolvedRegion, resolvedMaterials, product.price, resolvedStory, resolvedDescription, savedLang]);
+  }, [
+    isOpen,
+    selectedHookIndex,
+    selectedAudioId,
+    enableVoiceover,
+    savedLang,
+    triggerAudioPlayback,
+    currentHook,
+    resolvedProductName,
+    artisanName,
+    product.artisanName,
+    i18n.masterCraftsman,
+    resolvedCraftType,
+    resolvedRegion,
+    resolvedMaterials,
+    product.price,
+    resolvedStory,
+    resolvedDescription,
+  ]);
 
   // Synchronize Voiceover & Soundtrack with Remotion Player Timeline
   const lastFrameRef = useRef<number>(0);

@@ -501,8 +501,8 @@ function ProductUploadContent() {
       } else if (text.includes('brass') || text.includes('metal') || text.includes('dhokra')) {
         craftCategory = 'Metalwork';
         craftStyle = text.includes('dhokra') ? 'Dhokra Lost-Wax Bell Metal Casting' : 'Handcrafted Brass Metalwork';
-        materials = 'Bell Metal / Brass';
-        title = 'Handcrafted Heritage Metalwork Piece';
+        materials = text.includes('dhokra') ? 'Bell Metal Alloy, Beeswax' : 'Brass Alloy';
+        title = text.includes('dhokra') ? 'Handcrafted Dhokra Metal Statue' : 'Handcrafted Heritage Brassware';
         price = 2600;
       }
 

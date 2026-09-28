@@ -120,9 +120,9 @@ const fallbackCraftCatalog = (input: z.infer<typeof MultilingualAutoCatalogInput
     priceMid = 2400;
   } else if (text.includes('brass') || text.includes('metal') || text.includes('dhokra') || text.includes('copper')) {
     craftType = 'Metalwork';
-    craftStyle = text.includes('dhokra') ? 'Dhokra Lost-Wax Bell Metal Casting' : 'Hand-Etched Heritage Brass Metalwork';
-    suggestedMaterials = 'Bell Metal Alloy, Brass, Beeswax';
-    title = 'Handcrafted Bell Metal Artifact';
+    craftStyle = text.includes('dhokra') ? 'Dhokra Lost-Wax Bell Metal Casting' : text.includes('copper') ? 'Heritage Hand-Hammered Copperwork' : 'Hand-Etched Heritage Brass Metalwork';
+    suggestedMaterials = text.includes('dhokra') ? 'Bell Metal Alloy, Beeswax, River Clay' : text.includes('copper') ? 'Pure Copper' : 'Handworked Brass Alloy';
+    title = text.includes('dhokra') ? 'Handcrafted Dhokra Bell Metal Statue' : text.includes('copper') ? 'Handcrafted Heritage Copperware' : 'Handcrafted Heritage Brassware';
     priceMid = 2800;
   } else if (text.includes('jewel') || text.includes('bead') || text.includes('silver') || text.includes('kundan')) {
     craftType = 'Jewelry';

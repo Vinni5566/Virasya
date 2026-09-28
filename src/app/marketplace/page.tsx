@@ -97,7 +97,7 @@ export default function MarketplacePage() {
           ))}
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 mb-16 sm:mb-20">
           {/* Filters Sidebar - Desktop */}
           <aside className="hidden lg:block w-64 space-y-10">
             <div>
@@ -186,7 +186,7 @@ export default function MarketplacePage() {
           </section>
         </div>
         {/* AI Recommendations Section */}
-        <section className="mb-16 bg-white/50 p-8 rounded-[40px] border-none shadow-sm">
+        <section className="mt-12 sm:mt-16 mb-20 bg-white/50 p-8 sm:p-10 rounded-[40px] border-none shadow-sm">
           <div className="flex items-center gap-2 mb-8">
             <Sparkles className="h-6 w-6 text-primary" />
             <h2 className="text-2xl font-headline font-bold">Recommended for You</h2>
