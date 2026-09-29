@@ -447,20 +447,6 @@ function ProductUploadContent() {
       };
       translationsCacheRef.current['English'] = { ...originalEnglishRef.current };
 
-      // Pre-seed regional translation cache if available from auto-cataloger
-      const regionalLangName = CODE_TO_LANGUAGE_MAP[spokenLanguage];
-      if (regionalLangName && regionalLangName !== 'English' && result.craftStoryRegional) {
-        translationsCacheRef.current[regionalLangName] = {
-          title: result.suggestedTitleRegional || result.suggestedTitle,
-          description: result.shortDescription,
-          story: result.craftStoryRegional,
-          materials: result.suggestedMaterials,
-          style: result.craftStyle,
-          region: details.region,
-          dimensions: result.dimensions || '',
-        };
-      }
-
       // Check if missing details were flagged
       if (result.missingDetails && result.missingDetails.length > 0) {
         setMissingDetails(
@@ -573,6 +559,52 @@ function ProductUploadContent() {
     runMultilingualCataloging(enhancedDataUri);
   };
 
+  const handleFieldChange = (field: string, value: any) => {
+    setDetails(prev => ({ ...prev, [field]: value }));
+
+    const currentLang = activeLangRef.current || activeStep5Lang || 'English';
+
+    if (currentLang === 'English') {
+      if (originalEnglishRef.current) {
+        (originalEnglishRef.current as any)[field] = value;
+      } else {
+        originalEnglishRef.current = {
+          title: field === 'title' ? value : details.title,
+          description: field === 'description' ? value : details.description,
+          story: field === 'story' ? value : details.story,
+          materials: field === 'materials' ? value : details.materials,
+          style: field === 'style' ? value : details.style,
+          category: field === 'category' ? value : details.category,
+          region: field === 'region' ? value : details.region,
+          dimensions: field === 'dimensions' ? value : details.dimensions,
+        };
+      }
+      translationsCacheRef.current['English'] = { ...originalEnglishRef.current };
+
+      // Invalidate all stale regional language translation caches!
+      // This guarantees that switching to Hindi/Tamil/etc. next will fetch a fresh translation based on this new edit.
+      Object.keys(translationsCacheRef.current).forEach(k => {
+        if (k !== 'English') {
+          delete translationsCacheRef.current[k];
+        }
+      });
+    } else {
+      if (!translationsCacheRef.current[currentLang]) {
+        translationsCacheRef.current[currentLang] = {
+          title: details.title,
+          description: details.description,
+          story: details.story,
+          materials: details.materials,
+          style: details.style,
+          category: details.category,
+          region: details.region,
+          dimensions: details.dimensions,
+        };
+      }
+      (translationsCacheRef.current[currentLang] as any)[field] = value;
+    }
+  };
+
   const handleTranslate = async (lang: string, skipDomTrigger = false) => {
     const requestId = ++translationRequestIdRef.current;
     
@@ -639,7 +671,7 @@ function ProductUploadContent() {
     }
 
     // ── CACHED TRANSLATION: instant switch, zero latency & zero network ────
-    if (translationsCacheRef.current[lang]) {
+    if (translationsCacheRef.current[lang] && (translationsCacheRef.current[lang] as any).translatedByAi) {
       const cached = translationsCacheRef.current[lang];
       setIsTranslating(false);
       setActiveTranslatingLang(null);
@@ -700,6 +732,7 @@ function ProductUploadContent() {
         category: eng.category, // Keep canonical English category key so Select dropdown never vanishes
         region: result.translatedRegion || eng.region,
         dimensions: result.translatedDimensions || eng.dimensions,
+        translatedByAi: true,
       };
 
       // Always save to cache for instant future reuse
@@ -1455,18 +1488,7 @@ function ProductUploadContent() {
                     <Input
                       value={details.title}
                       placeholder={step5I18n.productTitlePlaceholder}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setDetails(prev => ({ ...prev, title: val }));
-                        if (activeLangRef.current === 'English') {
-                          if (originalEnglishRef.current) originalEnglishRef.current.title = val;
-                          if (translationsCacheRef.current['English']) {
-                            translationsCacheRef.current['English'].title = val;
-                          }
-                        } else if (translationsCacheRef.current[activeLangRef.current]) {
-                          translationsCacheRef.current[activeLangRef.current].title = val;
-                        }
-                      }}
+                      onChange={e => handleFieldChange('title', e.target.value)}
                       className="rounded-xl h-12"
                     />
                   </div>
@@ -1474,15 +1496,7 @@ function ProductUploadContent() {
                     <Label><span>{step5I18n.category}</span></Label>
                     <Select
                       value={details.category}
-                      onValueChange={v => {
-                        setDetails(prev => ({ ...prev, category: v }));
-                        if (activeLangRef.current === 'English') {
-                          if (originalEnglishRef.current) originalEnglishRef.current.category = v;
-                          if (translationsCacheRef.current['English']) {
-                            translationsCacheRef.current['English'].category = v;
-                          }
-                        }
-                      }}
+                      onValueChange={v => handleFieldChange('category', v)}
                     >
                       <SelectTrigger className="rounded-xl h-12">
                         <SelectValue placeholder={step5I18n.selectCategory}>
@@ -1503,18 +1517,7 @@ function ProductUploadContent() {
                     <Input
                       value={details.materials}
                       placeholder={step5I18n.materialsPlaceholder}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setDetails(prev => ({ ...prev, materials: val }));
-                        if (activeLangRef.current === 'English') {
-                          if (originalEnglishRef.current) originalEnglishRef.current.materials = val;
-                          if (translationsCacheRef.current['English']) {
-                            translationsCacheRef.current['English'].materials = val;
-                          }
-                        } else if (translationsCacheRef.current[activeLangRef.current]) {
-                          translationsCacheRef.current[activeLangRef.current].materials = val;
-                        }
-                      }}
+                      onChange={e => handleFieldChange('materials', e.target.value)}
                       className="rounded-xl h-12"
                     />
                   </div>
@@ -1523,18 +1526,7 @@ function ProductUploadContent() {
                     <Input
                       value={details.style}
                       placeholder={step5I18n.craftStylePlaceholder}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setDetails(prev => ({ ...prev, style: val }));
-                        if (activeLangRef.current === 'English') {
-                          if (originalEnglishRef.current) originalEnglishRef.current.style = val;
-                          if (translationsCacheRef.current['English']) {
-                            translationsCacheRef.current['English'].style = val;
-                          }
-                        } else if (translationsCacheRef.current[activeLangRef.current]) {
-                          translationsCacheRef.current[activeLangRef.current].style = val;
-                        }
-                      }}
+                      onChange={e => handleFieldChange('style', e.target.value)}
                       className="rounded-xl h-12"
                     />
                   </div>
@@ -1542,18 +1534,7 @@ function ProductUploadContent() {
                     <Label><span>{step5I18n.dimensionsSize}</span></Label>
                     <Input
                       value={details.dimensions}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setDetails(prev => ({ ...prev, dimensions: val }));
-                        if (activeLangRef.current === 'English') {
-                          if (originalEnglishRef.current) originalEnglishRef.current.dimensions = val;
-                          if (translationsCacheRef.current['English']) {
-                            translationsCacheRef.current['English'].dimensions = val;
-                          }
-                        } else if (translationsCacheRef.current[activeLangRef.current]) {
-                          translationsCacheRef.current[activeLangRef.current].dimensions = val;
-                        }
-                      }}
+                      onChange={e => handleFieldChange('dimensions', e.target.value)}
                       placeholder={step5I18n.dimensionsPlaceholder}
                       className="rounded-xl h-12"
                     />
@@ -1563,18 +1544,7 @@ function ProductUploadContent() {
                     <Input
                       value={details.region}
                       placeholder={step5I18n.originRegionPlaceholder}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setDetails(prev => ({ ...prev, region: val }));
-                        if (activeLangRef.current === 'English') {
-                          if (originalEnglishRef.current) originalEnglishRef.current.region = val;
-                          if (translationsCacheRef.current['English']) {
-                            translationsCacheRef.current['English'].region = val;
-                          }
-                        } else if (translationsCacheRef.current[activeLangRef.current]) {
-                          translationsCacheRef.current[activeLangRef.current].region = val;
-                        }
-                      }}
+                      onChange={e => handleFieldChange('region', e.target.value)}
                       className="rounded-xl h-12"
                     />
                   </div>
@@ -1605,18 +1575,7 @@ function ProductUploadContent() {
                   <Textarea
                     value={details.description}
                     placeholder={step5I18n.shortDescriptionPlaceholder}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setDetails(prev => ({ ...prev, description: val }));
-                      if (activeLangRef.current === 'English') {
-                        if (originalEnglishRef.current) originalEnglishRef.current.description = val;
-                        if (translationsCacheRef.current['English']) {
-                          translationsCacheRef.current['English'].description = val;
-                        }
-                      } else if (translationsCacheRef.current[activeLangRef.current]) {
-                        translationsCacheRef.current[activeLangRef.current].description = val;
-                      }
-                    }}
+                    onChange={e => handleFieldChange('description', e.target.value)}
                     className="rounded-xl min-h-[100px] leading-relaxed"
                   />
                 </div>
@@ -1653,18 +1612,7 @@ function ProductUploadContent() {
                   <Textarea
                     value={details.story}
                     placeholder={step5I18n.craftStoryPlaceholder}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setDetails(prev => ({ ...prev, story: val }));
-                      if (activeLangRef.current === 'English') {
-                        if (originalEnglishRef.current) originalEnglishRef.current.story = val;
-                        if (translationsCacheRef.current['English']) {
-                          translationsCacheRef.current['English'].story = val;
-                        }
-                      } else if (translationsCacheRef.current[activeLangRef.current]) {
-                        translationsCacheRef.current[activeLangRef.current].story = val;
-                      }
-                    }}
+                    onChange={e => handleFieldChange('story', e.target.value)}
                     className="rounded-xl min-h-[120px] italic text-muted-foreground bg-secondary/10 border-none"
                   />
                   <p className="text-[10px] text-primary/60 italic">*Generated based on verified cultural context. Max 4 sentences.</p>
