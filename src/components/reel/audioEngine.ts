@@ -153,6 +153,8 @@ class ReelAudioEngine {
   private duckTimer: NodeJS.Timeout | null = null;
   private speechTimer: NodeJS.Timeout | null = null;
   private currentSpeechSession = 0;
+  private activeVoiceoverBuffer: AudioBuffer | null = null;
+  private isPaused = false;
   public onAudioReady?: () => void;
 
   constructor() {}
@@ -392,6 +394,10 @@ class ReelAudioEngine {
       if (!targetBuffer) {
         targetBuffer = await this.fetchTTSAudioBuffer(targetScript, voice, lang);
       }
+
+      if (targetBuffer) {
+        this.activeVoiceoverBuffer = targetBuffer;
+      }
     }
 
     // 2. START SOUNDTRACK & VOICEOVER AT THE EXACT SAME TIMESTAMP
@@ -399,7 +405,7 @@ class ReelAudioEngine {
 
     if (this.enableVoiceover && this.cachedReelData) {
       if (targetBuffer) {
-        this.playStudioAudioBuffer(targetBuffer, startTime);
+        this.playStudioAudioBuffer(targetBuffer, startTime, 0);
       } else if (targetScript) {
         this.speakWebSpeechFallback(targetScript, this.language);
       }
@@ -474,20 +480,91 @@ class ReelAudioEngine {
   }
 
   /**
-   * Called when Remotion Player loops back to frame 0
+   * Restarts the ambient soundtrack theme
    */
-  public handleVideoLoop() {
-    if (this.isRunning && this.cachedReelData) {
-      this.stopSpeech();
-      this.restartSoundtrack();
-      if (this.enableVoiceover) {
+  public restartSoundtrack() {
+    if (this.loopTimer) {
+      clearInterval(this.loopTimer);
+      this.loopTimer = null;
+    }
+
+    this.activeOscillators.forEach((osc) => {
+      try {
+        osc.stop();
+        osc.disconnect();
+      } catch {}
+    });
+    this.activeOscillators = [];
+
+    if (this.ctx && this.musicGain) {
+      this.startTrack(this.currentTrackId, this.ctx.currentTime);
+    }
+  }
+
+  /**
+   * Restarts soundtrack and voiceover playback from the very beginning (Frame 0 / 0.0s)
+   */
+  public restartFromBeginning() {
+    if (!this.isRunning) {
+      this.start(this.cachedReelData || undefined);
+      return;
+    }
+
+    const ctx = this.initAudioContext();
+    if (!ctx) return;
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    this.stopSpeech();
+    this.restartSoundtrack();
+
+    if (this.enableVoiceover) {
+      if (this.activeVoiceoverBuffer) {
+        this.playStudioAudioBuffer(this.activeVoiceoverBuffer, ctx.currentTime, 0);
+      } else if (this.cachedReelData) {
         this.scheduleNarrations(this.cachedReelData);
       }
     }
   }
 
+  /**
+   * Seeks voiceover and soundtrack to a precise timestamp in seconds
+   */
+  public seekTo(seconds: number) {
+    if (!this.isRunning) return;
+    const targetSec = Math.max(0, seconds);
+
+    const ctx = this.initAudioContext();
+    if (!ctx) return;
+
+    if (targetSec === 0) {
+      this.restartFromBeginning();
+      return;
+    }
+
+    this.stopSpeech();
+
+    if (this.enableVoiceover && this.activeVoiceoverBuffer) {
+      if (targetSec < this.activeVoiceoverBuffer.duration) {
+        this.playStudioAudioBuffer(this.activeVoiceoverBuffer, ctx.currentTime, targetSec);
+      }
+    }
+  }
+
+  /**
+   * Called when Remotion Player loops back to frame 0 or completes playback
+   */
+  public handleVideoLoop() {
+    if (this.isRunning) {
+      this.restartFromBeginning();
+    }
+  }
+
   public stop() {
     this.isRunning = false;
+    this.isPaused = false;
     this.stopSpeech();
 
     if (this.loopTimer) {
@@ -512,6 +589,7 @@ class ReelAudioEngine {
   }
 
   public pause() {
+    this.isPaused = true;
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.pause();
@@ -523,6 +601,7 @@ class ReelAudioEngine {
   }
 
   public resume() {
+    this.isPaused = false;
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.resume();
@@ -1007,11 +1086,12 @@ class ReelAudioEngine {
     }
   }
 
-  private playStudioAudioBuffer(audioBuffer: AudioBuffer, atTime?: number) {
+  private playStudioAudioBuffer(audioBuffer: AudioBuffer, atTime?: number, offsetSeconds = 0) {
     if (!this.ctx || !this.isRunning || !this.enableVoiceover) return;
 
     try {
       this.stopSpeech();
+      this.activeVoiceoverBuffer = audioBuffer;
 
       const source = this.ctx.createBufferSource();
       source.buffer = audioBuffer;
@@ -1042,7 +1122,7 @@ class ReelAudioEngine {
       };
 
       const startTime = atTime !== undefined ? atTime : this.ctx.currentTime;
-      source.start(startTime);
+      source.start(startTime, Math.max(0, offsetSeconds));
       this.voiceoverSource = source;
     } catch (e) {
       console.error('Error playing studio audio buffer:', e);

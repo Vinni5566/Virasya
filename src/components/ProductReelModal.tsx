@@ -38,6 +38,7 @@ import {
   Pause,
   Download,
   Loader2,
+  Info,
 } from 'lucide-react';
 import type { PlayerRef } from '@remotion/player';
 
@@ -372,45 +373,65 @@ export function ProductReelModal({
 
   // Synchronize Voiceover & Soundtrack with Remotion Player Timeline
   const lastFrameRef = useRef<number>(0);
+  const attachedPlayerRef = useRef<PlayerRef | null>(null);
 
   useEffect(() => {
-    const player = playerRef.current;
-    if (!player || !isOpen) return;
+    if (!isOpen) {
+      attachedPlayerRef.current = null;
+      return;
+    }
 
-    const handlePlay = () => {
-      setIsPlayingAudio(true);
-      reelAudioEngine.resume();
-    };
+    const checkInterval = setInterval(() => {
+      const player = playerRef.current;
+      if (player && player !== attachedPlayerRef.current) {
+        attachedPlayerRef.current = player;
 
-    const handlePause = () => {
-      setIsPlayingAudio(false);
-      reelAudioEngine.pause();
-    };
+        const handlePlay = () => {
+          setIsPlayingAudio(true);
+          reelAudioEngine.resume();
+        };
 
-    const handleEnded = () => {
-      reelAudioEngine.handleVideoLoop();
-    };
+        const handlePause = () => {
+          setIsPlayingAudio(false);
+          reelAudioEngine.pause();
+        };
 
-    const handleFrameUpdate = (e: any) => {
-      const currentFrame = e.detail?.frame ?? 0;
+        const handleEnded = () => {
+          setIsPlayingAudio(false);
+          reelAudioEngine.restartFromBeginning();
+        };
 
-      // Handle video loop back to frame 0 -> restart audio from beginning
-      if (lastFrameRef.current > 680 && currentFrame < 35) {
-        reelAudioEngine.handleVideoLoop();
+        const handleSeeked = (e: any) => {
+          const currentFrame = e.detail?.frame ?? player.getCurrentFrame() ?? 0;
+          const targetSec = currentFrame / 30;
+          reelAudioEngine.seekTo(targetSec);
+        };
+
+        const handleFrameUpdate = (e: any) => {
+          const currentFrame = e.detail?.frame ?? 0;
+
+          // Handle video loop back to frame 0 -> restart audio from beginning
+          if (lastFrameRef.current > 680 && currentFrame < 30) {
+            reelAudioEngine.restartFromBeginning();
+          } else if (Math.abs(currentFrame - lastFrameRef.current) > 45) {
+            // User scrubbed timeline forwards or backwards
+            const targetSec = currentFrame / 30;
+            reelAudioEngine.seekTo(targetSec);
+          }
+          lastFrameRef.current = currentFrame;
+        };
+
+        player.addEventListener('play', handlePlay);
+        player.addEventListener('pause', handlePause);
+        player.addEventListener('ended', handleEnded);
+        player.addEventListener('seeked', handleSeeked);
+        player.addEventListener('frameupdate', handleFrameUpdate);
+        clearInterval(checkInterval);
       }
-      lastFrameRef.current = currentFrame;
-    };
-
-    player.addEventListener('play', handlePlay);
-    player.addEventListener('pause', handlePause);
-    player.addEventListener('ended', handleEnded);
-    player.addEventListener('frameupdate', handleFrameUpdate);
+    }, 100);
 
     return () => {
-      player.removeEventListener('play', handlePlay);
-      player.removeEventListener('pause', handlePause);
-      player.removeEventListener('ended', handleEnded);
-      player.removeEventListener('frameupdate', handleFrameUpdate);
+      clearInterval(checkInterval);
     };
   }, [isMounted, isOpen]);
 
@@ -437,7 +458,13 @@ export function ProductReelModal({
       }
       setIsPlayingAudio(false);
     } else {
-      reelAudioEngine.resume();
+      const currentFrame = playerRef.current?.getCurrentFrame() ?? 0;
+      if (currentFrame >= 710) {
+        playerRef.current?.seekTo(0);
+        reelAudioEngine.restartFromBeginning();
+      } else {
+        reelAudioEngine.resume();
+      }
       if (playerRef.current) {
         playerRef.current.play();
       }
@@ -908,14 +935,20 @@ export function ProductReelModal({
               {/* Main Action Buttons Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {/* 1. Primary Instagram Reel Button */}
-                <Button
-                  onClick={handleShareInstagramReel}
-                  disabled={isExportingVideo}
-                  className="h-12 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-600 hover:from-purple-700 hover:via-pink-700 hover:to-amber-700 text-white font-bold text-sm shadow-md gap-2"
-                >
-                  <Instagram className="h-4 w-4" />
-                  <span>Share Instagram Reel</span>
-                </Button>
+                <div className="flex flex-col gap-1.5">
+                  <Button
+                    onClick={handleShareInstagramReel}
+                    disabled={isExportingVideo}
+                    className="w-full h-12 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-600 hover:from-purple-700 hover:via-pink-700 hover:to-amber-700 text-white font-bold text-sm shadow-md gap-2"
+                  >
+                    <Instagram className="h-4 w-4" />
+                    <span>Share Instagram Reel</span>
+                  </Button>
+                  <p className="text-[10px] text-amber-900/60 leading-tight px-1 flex items-start gap-1">
+                    <Info className="h-3 w-3 text-amber-700 shrink-0 mt-0.5" />
+                    <span>Meta restriction note: Direct app posting is restricted by Meta API. Your 1080p Reel is auto-downloaded with caption copied for Instagram.</span>
+                  </p>
+                </div>
 
                 {/* 2. WhatsApp Share Button */}
                 <Button
