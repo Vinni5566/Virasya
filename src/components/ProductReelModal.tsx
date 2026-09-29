@@ -962,7 +962,7 @@ export function ProductReelModal({
               </div>
 
               {/* Secondary Utility Row */}
-              <div className="flex items-center justify-end gap-3 pt-1">
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-amber-900/10">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -977,6 +977,15 @@ export function ProductReelModal({
                       {i18n.copyProductLink}
                     </>
                   )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onClose}
+                  className="text-xs font-bold rounded-full h-9 px-5 border-amber-900/20 text-amber-900 hover:bg-amber-900/10"
+                >
+                  Close Studio
                 </Button>
               </div>
             </div>

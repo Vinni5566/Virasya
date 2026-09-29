@@ -39,11 +39,11 @@ Description: {{{description}}}
 {{#if targetLanguage}}Target Language: {{{targetLanguage}}}{{/if}}
 
 Requirements:
-- CRITICAL LANGUAGE RULE: Generate ALL content (Instagram caption, WhatsApp message, promo line, hashtags) strictly in {{{targetLanguage}}}. Write in the native script appropriate for {{{targetLanguage}}} (e.g. Devanagari for Hindi/Marathi, Tamil script for Tamil, Gurmukhi for Punjabi, Bengali script for Bengali, Telugu script for Telugu, etc.). Do NOT produce English unless targetLanguage is English.
+- CRITICAL LANGUAGE RULE: Generate ALL content (Instagram caption, WhatsApp message, promo line, hashtags) strictly in {{{targetLanguage}}}. Write in the native script appropriate for {{{targetLanguage}}} (e.g. Devanagari for Hindi/Marathi, Tamil script for Tamil, Gurmukhi for Punjabi, Bengali script for Bengali, Telugu script for Telugu, etc.). All hashtags MUST be in the native language script or localized terms matching {{{targetLanguage}}}. Do NOT produce any English hashtags when targetLanguage is not English.
 - Instagram caption: Max 60 words, engaging and authentic.
 - WhatsApp message: Around 100 words, written as a warm, complete product introduction encouraging purchase.
-- Hashtags: 8-10 relevant tags (including localized craft/region hashtags in script or Roman script as natural).
-- Promo Line: A short, punchy one-liner.
+- Hashtags: 8-10 relevant tags strictly written in {{{targetLanguage}}} script.
+- Promo Line: A short, punchy one-liner in {{{targetLanguage}}}.
 
 Tone: Warm, authentic, premium.`,
 });
@@ -196,16 +196,16 @@ const marketingGeneratorFlow = ai.defineFlow(
     const fallback = LOCALIZED_FALLBACKS[targetLang];
     if (fallback) {
       const LOCALIZED_HASHTAGS: Record<string, string[]> = {
-        Hindi: ['#विरासया', '#हस्तशिल्प', '#कारीगरी', '#हस्तनिर्मित', '#भारतीयशिल्प', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
-        Punjabi: ['#ਵਿਰਾਸਯਾ', '#ਹੱਥਕਲਾ', '#ਦਸਤਕਾਰੀ', '#ਹੈਂਡਮੇਡ', '#ਭਾਰਤੀਕਾਰੀਗਰ', '#ਪੰਜਾਬੀਕਲਾ', '#Virasya', '#HandmadeInIndia'],
-        Tamil: ['#விராஸ்யா', '#கைவினை', '#பாரம்பரியம்', '#கைவினைஞர்கள்', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
-        Bengali: ['#ভিরাসিয়া', '#হস্তশিল্প', '#ঐতিহ্য', '#বাংলারশিল্প', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
-        Marathi: ['#विरास्या', '#हस्तकला', '#पारंपारिक', '#भारतीयशिल्प', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
-        Gujarati: ['#વિરાસ્ય', '#હસ્તકલા', '#પરંપરાગત', '#કારીગરી', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
-        Telugu: ['#విరాస్య', '#హస్తకళ', '#చేతివృత్తులు', '#సాంప్రదాయం', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
-        Kannada: ['#ವಿರಾಸ್ಯಾ', '#ಕರಕುಶಲ', '#ಸಾಂಪ್ರದಾಯಿಕ', '#ಕುಶಲಕರ್ಮಿಗಳು', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
-        Malayalam: ['#വിരാസ്യ', '#കരകൗശലം', '#പാരമ്പര്യം', '#ഹാൻഡ്‌മെയ്ഡ്', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
-        Odia: ['#ଭିରାସ୍ୟା', '#ହସ୍ତଶିଳ୍ପ', '#ପାରମ୍ପରିକ', '#କାରିଗରୀ', '#Virasya', '#HandmadeInIndia', '#AuthenticCraft'],
+        Hindi: ['#विरासया', '#हस्तशिल्प', '#कारीगरी', '#हस्तनिर्मित', '#भारतीयशिल्प', '#प्रामाणिककला', '#भारतमेंनिर्मित', '#विरासतशिल्प'],
+        Punjabi: ['#ਵਿਰਾਸਯਾ', '#ਹੱਥਕਲਾ', '#ਦਸਤਕਾਰੀ', '#ਹੈਂਡਮੇਡ', '#ਭਾਰਤੀਕਾਰੀਗਰ', '#ਪੰਜਾਬੀਕਲਾ', '#ਭਾਰਤਵਿੱਚਬਣਿਆ', '#ਵਿਰਾਸਤੀਕਲਾ'],
+        Tamil: ['#விராஸ்யா', '#கைவினை', '#பாரம்பரியம்', '#கைவினைஞர்கள்', '#இந்தியகைவினை', '#அசல்கைவினை', '#பாரம்பரியகலை'],
+        Bengali: ['#ভিরাসিয়া', '#হস্তশিল্প', '#ঐতিহ্য', '#বাংলারশিল্প', '#ভারতীয়হস্তশিল্প', '#খাঁটিশিল্প', '#ঐতিহ্যবাহীশিল্প'],
+        Marathi: ['#विरास्या', '#हस्तकला', '#पारंपारिक', '#भारतीयशिल्प', '#अस्सलकला', '#भारतनिर्मित', '#वारसाशिल्प'],
+        Gujarati: ['#વિરાસ્ય', '#હસ્તકલા', '#પરંપરાગત', '#કારીગરી', '#ભારતીયહસ્તકલા', '#અસલકલા', '#વારસાશિલ્પ'],
+        Telugu: ['#విరాస్య', '#హస్తకళ', '#చేతివృత్తులు', '#సాంప్రదాయం', '#భారతీయకళ', '#అసలైనకళ', '#వారసత్వకళ'],
+        Kannada: ['#ವಿರಾಸ್ಯಾ', '#ಕರಕುಶಲ', '#ಸಾಂಪ್ರದಾಯಿಕ', '#ಕುಶಲಕರ್ಮಿಗಳು', '#ಭಾರತೀಯಕಲೆ', '#ಅಪ್ಪಟಕಲಾವಿಭಾಗ', '#ಪರಂಪರೆ'],
+        Malayalam: ['#വിരാസ്യ', '#കരകൗശലം', '#പാരമ്പര്യം', '#ഹാൻഡ്‌മെയ്ഡ്', '#ഭാരതീയകല', '#യഥാർത്ഥകല', '#പാരമ്പര്യകല'],
+        Odia: ['#ଭିରାସ୍ୟା', '#ହସ୍ତଶିଳ୍ପ', '#ପାରମ୍ପରିକ', '#କାରିଗରୀ', '#ଭାରତୀୟଶିଳ୍ପ', '#ପ୍ରାମାଣିକକଳା', '#ଐତିହ୍ୟଶିଳ୍ପ'],
       };
 
       const tags = LOCALIZED_HASHTAGS[targetLang] || [

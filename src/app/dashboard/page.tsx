@@ -22,6 +22,7 @@ import {
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { generateMarketingContent } from '@/ai/flows/artisan-ai-marketing-generator';
+import { getMarketingI18n } from '@/lib/marketingI18n';
 import { ProductReelModal } from '@/components/ProductReelModal';
 import { reelAudioEngine } from '@/components/reel/audioEngine';
 import { useToast } from '@/hooks/use-toast';
@@ -266,6 +267,7 @@ export default function ArtisanDashboard() {
                 <div className="divide-y">
                   {listings.map(item => {
                     const savedLang = item.language || 'English';
+                    const mI18n = getMarketingI18n(savedLang);
                     const itemTitle = (savedLang !== 'English')
                       ? (item.productNameRegional || item.translations?.[savedLang]?.title || item.productName)
                       : item.productName;
@@ -311,15 +313,15 @@ export default function ArtisanDashboard() {
                         </Link>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5" title="Social Media Generator" onClick={() => handleMarketingGen(item)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5" title={mI18n.title} onClick={() => handleMarketingGen(item)}>
                               <Share2 className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-2xl rounded-[40px] border-none shadow-2xl">
                             <DialogHeader>
-                              <DialogTitle className="text-2xl font-headline text-primary">Social Media Generator</DialogTitle>
+                              <DialogTitle className="text-2xl font-headline text-primary">{mI18n.title}</DialogTitle>
                               <DialogDescription>
-                                AI-crafted posts in {savedLang} for {itemTitle}.
+                                {mI18n.subtitle(savedLang, itemTitle)}
                               </DialogDescription>
                             </DialogHeader>
 
@@ -331,11 +333,11 @@ export default function ArtisanDashboard() {
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <h4 className="font-bold text-sm font-headline text-foreground">AI 9:16 Heritage Video Reel</h4>
-                                    <Badge className="bg-amber-600 text-white text-[9px] px-2 py-0.2 rounded-full font-bold">New</Badge>
+                                    <h4 className="font-bold text-sm font-headline text-foreground">{mI18n.reelCardTitle}</h4>
+                                    <Badge className="bg-amber-600 text-white text-[9px] px-2 py-0.2 rounded-full font-bold">{mI18n.reelCardBadge}</Badge>
                                   </div>
                                   <p className="text-xs text-muted-foreground mt-0.5">
-                                    Cinematic multi-angle video with heritage storytelling & fair-trade pricing.
+                                    {mI18n.reelCardDesc}
                                   </p>
                                 </div>
                               </div>
@@ -346,30 +348,30 @@ export default function ArtisanDashboard() {
                                 }}
                               >
                                 <Film className="h-3.5 w-3.5" />
-                                Watch Video Reel
+                                {mI18n.watchReelBtn}
                               </Button>
                             </div>
 
                             {isMarketingLoading ? (
                               <div className="flex flex-col items-center py-12">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                                <p className="font-bold text-primary">Crafting content...</p>
+                                <p className="font-bold text-primary">{mI18n.loadingText}</p>
                               </div>
                             ) : marketingResult && (
                               <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
                                 <div className="bg-secondary/20 p-6 rounded-3xl border border-primary/10">
                                   <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-bold text-primary flex items-center gap-2 uppercase tracking-widest text-xs">Instagram</h4>
+                                    <h4 className="font-bold text-primary flex items-center gap-2 uppercase tracking-widest text-xs">{mI18n.instagramHeader}</h4>
                                     <Button
                                       size="sm"
                                       variant="ghost"
                                       className="h-7 px-2.5 text-xs text-primary hover:bg-primary/10 rounded-lg gap-1.5"
                                       onClick={() => {
                                         navigator.clipboard.writeText(`${marketingResult.instagram}\n\n${marketingResult.hashtags.join(' ')}`);
-                                        toast({ title: "Instagram post copied!" });
+                                        toast({ title: mI18n.postCopiedToast });
                                       }}
                                     >
-                                      Copy Post
+                                      {mI18n.copyPost}
                                     </Button>
                                   </div>
                                   <p className="text-sm italic mb-4 leading-relaxed">{marketingResult.instagram}</p>
@@ -380,15 +382,15 @@ export default function ArtisanDashboard() {
                                   </div>
                                 </div>
                                 <div className="bg-secondary/20 p-6 rounded-3xl border border-primary/10">
-                                  <h4 className="font-bold mb-2 text-primary uppercase tracking-widest text-xs">WhatsApp</h4>
+                                  <h4 className="font-bold mb-2 text-primary uppercase tracking-widest text-xs">{mI18n.whatsappHeader}</h4>
                                   <p className="text-sm leading-relaxed">{marketingResult.whatsapp}</p>
                                   <Button className="mt-4 rounded-full gap-2" onClick={handleWhatsAppShare}>
                                     <Share2 className="h-4 w-4" />
-                                    Share on WhatsApp
+                                    {mI18n.shareWhatsappBtn}
                                   </Button>
                                 </div>
                                 <div className="bg-primary/5 p-4 rounded-2xl">
-                                  <p className="text-xs font-bold text-primary mb-1 uppercase tracking-widest">Promo Line</p>
+                                  <p className="text-xs font-bold text-primary mb-1 uppercase tracking-widest">{mI18n.promoLineLabel}</p>
                                   <p className="text-sm font-medium">"{marketingResult.promoLine}"</p>
                                 </div>
                               </div>
